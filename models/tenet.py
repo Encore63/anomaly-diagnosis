@@ -1,6 +1,7 @@
 import torch
 
 from torch import nn
+from ss_head import SSHead
 from torchinfo import summary
 
 
@@ -31,6 +32,7 @@ class TENet(nn.Module):
             nn.AvgPool2d(kernel_size=(1, 2), stride=1),
             nn.Dropout(p=0.5)
         )
+        self.ss_branch = SSHead()
         self.classifier = nn.Sequential(
             nn.Linear(in_features=256, out_features=64),
             nn.ELU(),
@@ -45,8 +47,8 @@ class TENet(nn.Module):
 
 
 if __name__ == '__main__':
-    data = torch.randn((64, 1, 10, 51))
-    model = TENet(f1=64, f2=128, depth=8, num_classes=3)
+    data = torch.randn((32, 1, 10, 50))
+    model = TENet(f1=64, f2=128, depth=8, num_classes=10)
     out = model(data)
     print(out.shape)
     summary(model, input_data=data)
