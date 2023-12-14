@@ -27,17 +27,17 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10) -> np.ndarr
     for root, dirs, files in os.walk(src_path):
         for file in files:
             file_path = src_path.joinpath(file)
-            data = pd.read_csv(file_path).to_numpy()
-            data = scaler.transform(data)
-            data = np.concatenate((data[0:num_data, :45],
-                                   data[0:num_data, 46:49],
-                                   data[0:num_data, 50:52]), axis=1)
-            label = np.array([[idx_class]] * len(data))
-            data = np.concatenate((data, label), axis=1)
-            data_temp = np.zeros(((len(data) - time_win + 1), time_win, data.shape[1]))
-            for _i in range((len(data) - time_win + 1)):
+            fault_data = pd.read_csv(file_path).to_numpy()
+            fault_data = scaler.transform(fault_data)
+            fault_data = np.concatenate((fault_data[0:num_data, :45],
+                                         fault_data[0:num_data, 46:49],
+                                         fault_data[0:num_data, 50:52]), axis=1)
+            label = np.array([[idx_class]] * len(fault_data))
+            fault_data = np.concatenate((fault_data, label), axis=1)
+            data_temp = np.zeros(((len(fault_data) - time_win + 1), time_win, fault_data.shape[1]))
+            for _i in range((len(fault_data) - time_win + 1)):
                 for _j in range(time_win):
-                    data_temp[_i, _j] = data[_i + _j]
+                    data_temp[_i, _j] = fault_data[_i + _j]
             dataset = np.concatenate((dataset, data_temp), axis=0)
             idx_class += 1
     dataset = dataset[1:dataset.shape[0], :, :]
