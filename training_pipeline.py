@@ -62,4 +62,3 @@ def train(train_iter, eval_iter, model, criterion, writer, save_path, args):
         if stopping_tool.early_stop:
             print('Early Stopping ...')
             break
-        # torch.save(model, save_path.joinpath('tenet_{}'.format(epoch)))
