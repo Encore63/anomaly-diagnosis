@@ -33,7 +33,7 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(args.seed)
 
     if not pathlib.Path(args.data_dir).exists():
-        pathlib.Path(args.data_path).mkdir()
+        pathlib.Path(args.data_dir).mkdir()
     if not pathlib.Path(args.log_dir).exists():
         pathlib.Path(args.log_dir).mkdir()
     if not pathlib.Path(args.output_dir).exists():
@@ -49,9 +49,9 @@ if __name__ == '__main__':
     args.split_ratio = {'train': args.split_ratio[0],
                         'eval': args.split_ratio[1]}
     data_domains = {'source': args.s, 'target': args.t}
-    train_dataset = TEPDataset(args.data_path, args.split_ratio, data_domains, 'train')
-    eval_dataset = TEPDataset(args.data_path, args.split_ratio, data_domains, 'eval')
-    test_dataset = TEPDataset(args.data_path, args.split_ratio, data_domains, 'test')
+    train_dataset = TEPDataset(args.data_dir, args.split_ratio, data_domains, 'train')
+    eval_dataset = TEPDataset(args.data_dir, args.split_ratio, data_domains, 'eval')
+    test_dataset = TEPDataset(args.data_dir, args.split_ratio, data_domains, 'test')
 
     train_dataloader = dataloader.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     eval_dataloader = dataloader.DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=True)
