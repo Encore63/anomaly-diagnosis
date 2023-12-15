@@ -15,9 +15,9 @@ from testing_pipeline import test
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=2023)
-    parser.add_argument('--data-path', type=str, default=r'./data/TEP')
+    parser.add_argument('--data-dir', type=str, default=r'./data/TEP')
     parser.add_argument('--split-ratio', type=tuple, default=(0.7, 0.3))
-    parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--epochs', type=int, default=20)
@@ -31,6 +31,13 @@ if __name__ == '__main__':
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
+
+    if not pathlib.Path(args.data_dir).exists():
+        pathlib.Path(args.data_path).mkdir()
+    if not pathlib.Path(args.log_dir).exists():
+        pathlib.Path(args.log_dir).mkdir()
+    if not pathlib.Path(args.output_dir).exists():
+        pathlib.Path(args.output_dir).mkdir()
 
     model = TENet(f1=64, f2=128, depth=8, num_classes=args.num_classes).to(args.device)
 
