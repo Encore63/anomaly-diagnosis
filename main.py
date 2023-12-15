@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--split-ratio', type=tuple, default=(0.7, 0.3))
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--DEVICE', type=str, default='cuda', choices=['cpu', 'cuda'])
+    parser.add_argument('--DEVICE', type=str, default='cuda')
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--num-classes', type=int, default=10)
     parser.add_argument('--step-size', type=int, default=5, help='step size of learning rate scheduler')
