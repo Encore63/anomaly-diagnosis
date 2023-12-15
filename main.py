@@ -4,10 +4,9 @@ import argparse
 
 from models.tenet import TENet
 from utils.logger import get_time
-from torchvision import transforms
-from torch.utils.data import dataloader
 from datasets.tep_dataset import TEPDataset
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data.dataloader import DataLoader
 from training_pipeline import train
 from testing_pipeline import test
 
@@ -20,6 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--cuda-id', type=int, default=0)
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--num-classes', type=int, default=10)
     parser.add_argument('--step-size', type=int, default=5, help='step size of learning rate scheduler')
@@ -31,6 +31,7 @@ if __name__ == '__main__':
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
+    torch.cuda.set_device(args.cuda_id)
 
     if not pathlib.Path(args.data_dir).exists():
         pathlib.Path(args.data_dir).mkdir()
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     if not pathlib.Path(args.output_dir).exists():
         pathlib.Path(args.output_dir).mkdir()
 
-    model = TENet(f1=64, f2=128, depth=8, num_classes=args.num_classes).to(args.device)
+    model = TENet(f1=32, f2=64, depth=8, num_classes=args.num_classes).to(args.device)
 
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -53,9 +54,9 @@ if __name__ == '__main__':
     eval_dataset = TEPDataset(args.data_dir, args.split_ratio, data_domains, 'eval')
     test_dataset = TEPDataset(args.data_dir, args.split_ratio, data_domains, 'test')
 
-    train_dataloader = dataloader.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    eval_dataloader = dataloader.DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=True)
-    test_dataloader = dataloader.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     train(train_iter=train_dataloader,
           eval_iter=eval_dataloader,
