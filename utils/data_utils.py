@@ -66,6 +66,31 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, **kwargs) -> dict:
     return datasets
 
 
+class DataTransform(object):
+    """
+    Tools for data transformation or augmentation
+    """
+    def __init__(self, data: np.ndarray):
+        self.data = data
+
+    def gaussian(self, sigma=0.01) -> np.ndarray:
+        return self.data + np.random.normal(loc=0, scale=sigma, size=self.data.shape)
+
+    def random_gaussian(self, sigma=0.01):
+        if np.random.randint(2):
+            return self.data
+        else:
+            return self.data + np.random.normal(loc=0, scale=sigma, size=self.data.shape)
+
+    def random_scale(self, sigma=0.01):
+        if np.random.randint(2):
+            return self.data
+        else:
+            scale_factor = np.random.normal(loc=1, scale=sigma, size=(self.data.shape[0], 1))
+            scale_matrix = np.matmul(scale_factor, np.ones((1, self.data.shape[1])))
+            return self.data * scale_matrix
+
+
 if __name__ == '__main__':
     res_data = data_concat(src_path=r'D:\PyProjects\FaultDiagnosis\data\TEP', mode=1)
     print(res_data[:, :, -1].shape)
