@@ -2,7 +2,7 @@ import torch
 
 from torch import nn
 from torchinfo import summary
-from ss_head import SSHead
+from models.ss_head import SSHead
 
 
 class TENet(nn.Module):

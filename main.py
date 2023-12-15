@@ -6,7 +6,6 @@ from models.tenet import TENet
 from utils.logger import get_time
 from torchvision import transforms
 from torch.utils.data import dataloader
-from torch.optim.lr_scheduler import StepLR
 from datasets.tep_dataset import TEPDataset
 from torch.utils.tensorboard import SummaryWriter
 from training_pipeline import train

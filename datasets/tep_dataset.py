@@ -1,6 +1,8 @@
 import torch
 
 from typing import Dict
+
+import models.tenet
 from utils.data_utils import data_split
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
@@ -25,7 +27,7 @@ class TEPDataset(Dataset):
             assert "data is not exist!"
 
         self.data = torch.from_numpy(self.data).to(torch.float32)
-        self.labels = torch.from_numpy(self.labels).to(torch.float32)
+        self.labels = torch.from_numpy(self.labels).to(torch.long)
         offset = data_dim - len(self.data.shape)
         if offset > 0:
             for _ in range(offset):
@@ -52,4 +54,4 @@ if __name__ == '__main__':
                          transform=None)
     data_iter = DataLoader(dataset, batch_size=32, shuffle=True)
     for _, (data, label) in enumerate(data_iter):
-        print(data.shape, label.shape)
+        print(data)
