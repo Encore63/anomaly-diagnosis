@@ -20,12 +20,12 @@ if __name__ == '__main__':
     parser.add_argument('--split-ratio', type=tuple, default=(0.7, 0.3))
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--DEVICE', type=str, default='cuda')
+    parser.add_argument('--DEVICE', type=str, default='cuda', choices=['cpu', 'cuda'])
     parser.add_argument('--epochs', type=int, default=20)
-    parser.add_argument('--step-size', type=int, default=5, help='step size of learning rate scheduler')
-    parser.add_argument('--s', type=int, default=0, help='source domain')
-    parser.add_argument('--t', type=int, default=1, help='target domain')
     parser.add_argument('--num-classes', type=int, default=10)
+    parser.add_argument('--step-size', type=int, default=5, help='step size of learning rate scheduler')
+    parser.add_argument('--s', type=int, default=1, help='source domain', choices=[1, 2, 3, 4, 5, 6])
+    parser.add_argument('--t', type=int, default=3, help='target domain', choices=[1, 2, 3, 4, 5, 6])
     parser.add_argument('--log-dir', type=str, default=r'./logs', help='save path of logs')
     parser.add_argument('--output-dir', type=str, default=r'./checkpoints', help='save path of model')
     args = parser.parse_args()
@@ -35,12 +35,7 @@ if __name__ == '__main__':
 
     model = TENet(f1=64, f2=128, depth=8, num_classes=args.num_classes).to(args.DEVICE)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
     criterion = torch.nn.CrossEntropyLoss()
-
-    args.step_size = args.epochs / 10
-    lr_scheduler = StepLR(optimizer, step_size=args.step_size)
 
     args.log_dir = str(pathlib.Path(args.log_dir).joinpath(get_time()))
     log_writer = SummaryWriter(log_dir=args.log_dir)
@@ -58,17 +53,14 @@ if __name__ == '__main__':
 
     train(train_iter=train_dataloader,
           eval_iter=eval_dataloader,
-          _model=model,
-          _criterion=criterion,
-          _optimizer=optimizer,
-          _scheduler=lr_scheduler,
-          epochs=args.epochs,
+          model=model,
+          criterion=criterion,
           writer=log_writer,
           save_path=pathlib.Path(args.output_dir),
           args=args)
 
     test(test_iter=test_dataloader,
-         model_path=pathlib.Path(args.output_dir).joinpath('tenet.pth'),
-         _criterion=criterion)
+         model_path=pathlib.Path(args.output_dir).joinpath('best_model.pth'),
+         criterion=criterion)
 
     log_writer.close()
