@@ -2,8 +2,8 @@
 
 Under Construction ...
 
-TODO:  
+TODO LIST:  
 - [ ] Add data transform tools for TEP dataset.  
 - [ ] Add test-time training/adaptation module in testing pipeline.  
-- [ ] Add domain adversarial network module in model.  
-- [ ] Find a SOTA transfer learning method in chemical fault detection and diagnosis.  
+- [ ] Add domain adversarial network module in models.  
+- [ ] Find a SOTA method in chemical fault detection and diagnosis based on transfer learning.  
