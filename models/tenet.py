@@ -1,8 +1,8 @@
 import torch
 
 from torch import nn
-from ss_head import SSHead
 from torchinfo import summary
+from models.ss_head import SSHead
 
 
 class TENet(nn.Module):
