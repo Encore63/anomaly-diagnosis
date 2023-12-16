@@ -61,6 +61,7 @@ def train(train_iter, eval_iter, model, criterion, writer, save_path, args):
             eval_loop.set_postfix(acc='{:.4f}'.format(acc_meter.avg),
                                   loss='{:.4f}'.format(loss_meter.avg))
             global_eval_step += 1
+
         stopping_tool(loss_meter.avg, model)
         if stopping_tool.early_stop:
             print('Early Stopping ...')

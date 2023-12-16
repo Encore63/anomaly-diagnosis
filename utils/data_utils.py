@@ -64,7 +64,7 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kw
     :param random_seed 随机数种子
     :return: 经划分后的数据集
     """
-    assert sum(ratio.values()) <= 1
+    assert sum(ratio.values()) <= 1, "Invalid ratio!"
     datasets = dict()
     data = data_concat(src_path, domains['source'], **kwargs)
     data_size = data.shape[0]

@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--s', type=int, default=1, help='source domain', choices=[1, 2, 3, 4, 5, 6])
     parser.add_argument('--t', type=int, default=2, help='target domain', choices=[1, 2, 3, 4, 5, 6])
     parser.add_argument('--log-dir', type=str, default=r'./logs', help='save path of logs')
-    parser.add_argument('--output-dir', type=str, default=r'./checkpoints', help='save path of model')
+    parser.add_argument('--output-dir', type=str, default=r'./checkpoints', help='save path of model weights')
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)

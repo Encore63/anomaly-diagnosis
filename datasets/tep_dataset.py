@@ -26,7 +26,7 @@ class TEPDataset(Dataset):
             self.data = _data['target_test'][:, :, :-1]
             self.labels = _data['target_test'][:, :, -1]
         else:
-            assert self.data is not None or self.labels is not None, 'Given data does not exist.'
+            assert self.data is not None or self.labels is not None, 'Given data does not exist!'
 
         self.data = torch.from_numpy(self.data).to(torch.float32)
         self.labels = torch.from_numpy(self.labels).to(torch.long)
