@@ -2,7 +2,8 @@ import torch
 
 from torch import nn
 from torchinfo import summary
-from models.ss_head import SSHead
+from models.adversarial_module import AdversarialModule
+from models.self_supervised_module import SelfSupervisedModule
 
 
 class TENet(nn.Module):
@@ -32,23 +33,27 @@ class TENet(nn.Module):
             nn.AvgPool2d(kernel_size=(1, 2), stride=1),
             nn.Dropout(p=0.5)
         )
-        self.ss_branch = SSHead()
-        self.classifier = nn.Sequential(
-            nn.Linear(in_features=256, out_features=64),
+        self.class_classifier = nn.Sequential(
+            nn.Linear(in_features=3840, out_features=1920),
             nn.ELU(),
-            nn.Linear(in_features=64, out_features=num_classes)
+            nn.Linear(in_features=1920, out_features=960),
+            nn.ELU(),
+            nn.Linear(in_features=960, out_features=num_classes),
         )
+        self.self_supervised_branch = SelfSupervisedModule()
+        self.adversarial_branch = AdversarialModule(in_features=3840, hidden_dims=[1920, 960, num_classes])
 
     def forward(self, x):
         features = self.ext_block_1(x)
         features = self.ext_block_2(features)
-        output = self.classifier(features.view(features.shape[0], -1, 256))
+        features = features.view(features.shape[0], -1)
+        output = self.class_classifier(features)
         return output
 
 
 if __name__ == '__main__':
     data = torch.randn((32, 1, 10, 50))
-    model = TENet(f1=64, f2=128, depth=8, num_classes=10)
+    model = TENet(f1=16, f2=32, depth=8, num_classes=10)
     out = model(data)
     print(out.shape)
     summary(model, input_data=data)

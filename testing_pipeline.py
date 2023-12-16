@@ -4,7 +4,7 @@ import torch
 def test(test_iter, model_path, criterion):
     _model = torch.load(model_path)
     _model.eval()
-    count, accuracy = 0, 0
+    count = 0
     for i, (data, label) in enumerate(test_iter):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()

@@ -8,13 +8,15 @@ from typing import Dict
 from sklearn.preprocessing import StandardScaler
 
 
-def data_concat(src_path: str, mode: int, num_data=600, time_win=10) -> np.ndarray:
+def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=None, num_classes=10) -> np.ndarray:
     """
     数据预处理及标准化
     :param src_path: 数据路径
     :param mode: 数据模式
+    :param neglect: 忽略的类别 (choice 1 2 3 4 5 6)
     :param num_data: 数据量 (default 600)
     :param time_win: 时间窗口大小 (default 10)
+    :param num_classes: 类别数量 (default 10)
     :return: 经预处理后的数据
     """
     scaler = StandardScaler()
@@ -23,9 +25,15 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10) -> np.ndarr
     normal_data = normal_data.to_numpy()
     scaler.fit(normal_data[1:num_data, :])
     dataset = np.zeros((1, time_win, 51))
-    idx_class = 0
+    count, idx_class = 0, 0
+    class_ignore = set(neglect) if neglect is not None else set()
     for root, dirs, files in os.walk(src_path):
         for file in files:
+            if file.split('.')[0][-2:] == '00':
+                continue
+            if idx_class in class_ignore:
+                idx_class += 1
+                continue
             file_path = src_path.joinpath(file)
             fault_data = pd.read_csv(file_path).to_numpy()
             fault_data = scaler.transform(fault_data)
@@ -39,17 +47,21 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10) -> np.ndarr
                 for _j in range(time_win):
                     data_temp[_i, _j] = fault_data[_i + _j]
             dataset = np.concatenate((dataset, data_temp), axis=0)
+            count += 1
             idx_class += 1
+            if count >= num_classes:
+                break
     dataset = dataset[1:dataset.shape[0], :, :]
     return dataset
 
 
-def data_split(src_path: str, ratio: Dict, domains: Dict, **kwargs) -> dict:
+def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kwargs) -> dict:
     """
     数据集划分
     :param src_path: 数据路径
     :param ratio: 划分比例
     :param domains: 数据域
+    :param random_seed 随机数种子
     :return: 经划分后的数据集
     """
     assert sum(ratio.values()) <= 1
@@ -58,6 +70,8 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, **kwargs) -> dict:
     data_size = data.shape[0]
     train_size = int(data_size * ratio['train'])
     eval_size = int(data_size * ratio['eval'])
+    np.random.seed(random_seed)
+    np.random.shuffle(data)
     train_data = data[:train_size, :, :]
     eval_data = data[train_size:train_size + eval_size, :, :]
     datasets.setdefault('source_train', train_data)
@@ -70,19 +84,20 @@ class DataTransform(object):
     """
     Tools for data transformation or augmentation
     """
+
     def __init__(self, data: np.ndarray):
         self.data = data
 
-    def gaussian(self, sigma=0.01) -> np.ndarray:
+    def gaussian(self, sigma: float = 0.01) -> np.ndarray:
         return self.data + np.random.normal(loc=0, scale=sigma, size=self.data.shape)
 
-    def random_gaussian(self, sigma=0.01):
+    def random_gaussian(self, sigma: float = 0.01):
         if np.random.randint(2):
             return self.data
         else:
             return self.data + np.random.normal(loc=0, scale=sigma, size=self.data.shape)
 
-    def random_scale(self, sigma=0.01):
+    def random_scale(self, sigma: float = 0.01):
         if np.random.randint(2):
             return self.data
         else:
@@ -92,5 +107,5 @@ class DataTransform(object):
 
 
 if __name__ == '__main__':
-    res_data = data_concat(src_path=r'D:\PyProjects\FaultDiagnosis\data\TEP', mode=1)
-    print(res_data[:, :, -1].shape)
+    c_data = data_concat(src_path=r'D:\PyProjects\FaultDiagnosis\data\TEP', mode=1)
+    print(c_data[0, 0])

@@ -4,9 +4,9 @@ from torch import nn
 from torchinfo import summary
 
 
-class SSHead(nn.Module):
+class SelfSupervisedModule(nn.Module):
     def __init__(self):
-        super(SSHead, self).__init__()
+        super(SelfSupervisedModule, self).__init__()
         ...
 
     def forward(self, x):
