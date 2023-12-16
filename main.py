@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--cuda-id', type=int, default=0)
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--num-classes', type=int, default=10)
-    parser.add_argument('--step-size', type=int, default=5, help='step size of learning rate scheduler')
+    parser.add_argument('--step-size', type=int, default=10, help='step size of learning rate scheduler')
     parser.add_argument('--s', type=int, default=1, help='source domain', choices=[1, 2, 3, 4, 5, 6])
     parser.add_argument('--t', type=int, default=2, help='target domain', choices=[1, 2, 3, 4, 5, 6])
     parser.add_argument('--log-dir', type=str, default=r'./logs', help='save path of logs')

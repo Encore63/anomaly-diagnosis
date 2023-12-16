@@ -17,7 +17,7 @@ def train(train_iter, eval_iter, model, criterion, writer, save_path, args):
         train_loop = tqdm(enumerate(train_iter), total=len(train_iter))
         loss_meter = AverageMeter('LossMeter')
         acc_meter = AverageMeter('AccMeter')
-        for i, (data, labels) in train_loop:
+        for _, (data, labels) in train_loop:
             loss_meter.reset()
             acc_meter.reset()
             if torch.cuda.is_available():
@@ -39,13 +39,13 @@ def train(train_iter, eval_iter, model, criterion, writer, save_path, args):
             train_loop.set_postfix(acc='{:.4f}'.format(acc_meter.avg),
                                    loss='{:.4f}'.format(loss_meter.avg))
             global_train_step += 1
-        # scheduler.step()
+        scheduler.step()
 
         model.eval()
         eval_loop = tqdm(enumerate(eval_iter), total=len(eval_iter))
         loss_meter.reset()
         acc_meter.reset()
-        for i, (data, labels) in eval_loop:
+        for _, (data, labels) in eval_loop:
             if torch.cuda.is_available():
                 data, labels = data.cuda(), labels.cuda()
             output = model(data)
