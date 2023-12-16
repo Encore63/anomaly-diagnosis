@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--cuda-id', type=int, default=0)
-    parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--num-classes', type=int, default=10)
     parser.add_argument('--step-size', type=int, default=10, help='step size of learning rate scheduler')
     parser.add_argument('--s', type=int, default=1, help='source domain', choices=[1, 2, 3, 4, 5, 6])
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     criterion = torch.nn.CrossEntropyLoss()
 
-    args.log_dir = str(pathlib.Path(args.log_dir).joinpath(get_time()))
+    args.log_dir = str(pathlib.Path(args.log_dir).joinpath(f'{get_time()}_{args.s}_{args.t}'))
     log_writer = SummaryWriter(log_dir=args.log_dir)
 
     args.split_ratio = {'train': args.split_ratio[0],
@@ -67,7 +67,7 @@ if __name__ == '__main__':
           args=args)
 
     test(test_iter=test_dataloader,
-         model_path=pathlib.Path(args.output_dir).joinpath('best_model.pth'),
+         model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.s}_{args.t}.pth'),
          criterion=criterion)
 
     log_writer.close()

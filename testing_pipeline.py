@@ -14,7 +14,7 @@ def test(test_iter, model_path, criterion):
         loss = criterion(output, label)
         count += torch.eq(torch.argmax(output, 1), label).sum().item()
     accuracy = count / len(test_iter)
-    print('Test accuracy: {:.4f}%'.format(accuracy * 100))
+    print('Test Accuracy: {:.4f}%'.format(accuracy * 100))
 
 
 def test_time_adapt(test_iter, model_path, criterion):
