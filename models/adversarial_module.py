@@ -2,13 +2,12 @@ import torch
 
 from torch import nn
 from typing import Any
-from torchinfo import summary
 from torch.autograd import Function
 
 
 class ReverseLayer(Function):
     @staticmethod
-    def forward(ctx: Any, *args: Any, **kwargs: Any) -> Any:
+    def forward(ctx: Any, **kwargs: Any) -> Any:
         x, alpha = kwargs['x'], kwargs['alpha']
         ctx.alpha = alpha
         return x.view_as(x)

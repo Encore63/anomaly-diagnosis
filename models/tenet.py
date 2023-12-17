@@ -38,7 +38,7 @@ class TENet(nn.Module):
             nn.ELU(),
             nn.Linear(in_features=1920, out_features=960),
             nn.ELU(),
-            nn.Linear(in_features=960, out_features=num_classes),
+            nn.Linear(in_features=960, out_features=num_classes)
         )
         self.self_supervised_branch = SelfSupervisedModule()
         self.adversarial_branch = AdversarialModule(in_features=3840, hidden_dims=[1920, 960, num_classes])

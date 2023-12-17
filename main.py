@@ -5,7 +5,6 @@ import argparse
 from models.tenet import TENet
 from utils.logger import get_time
 from datasets.tep_dataset import TEPDataset
-from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data.dataloader import DataLoader
 from training_pipeline import train
 from testing_pipeline import test
@@ -24,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--num-classes', type=int, default=10)
     parser.add_argument('--step-size', type=int, default=10, help='step size of learning rate scheduler')
     parser.add_argument('--s', type=int, default=1, help='source domain', choices=[1, 2, 3, 4, 5, 6])
-    parser.add_argument('--t', type=int, default=2, help='target domain', choices=[1, 2, 3, 4, 5, 6])
+    parser.add_argument('--t', type=int, default=3, help='target domain', choices=[1, 2, 3, 4, 5, 6])
     parser.add_argument('--log-dir', type=str, default=r'./logs', help='save path of logs')
     parser.add_argument('--output-dir', type=str, default=r'./checkpoints', help='save path of model weights')
     args = parser.parse_args()
@@ -45,7 +44,6 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
 
     args.log_dir = str(pathlib.Path(args.log_dir).joinpath(f'{get_time()}_{args.s}_{args.t}'))
-    log_writer = SummaryWriter(log_dir=args.log_dir)
 
     args.split_ratio = {'train': args.split_ratio[0],
                         'eval': args.split_ratio[1]}
@@ -62,12 +60,8 @@ if __name__ == '__main__':
           eval_iter=eval_dataloader,
           model=model,
           criterion=criterion,
-          writer=log_writer,
-          save_path=pathlib.Path(args.output_dir),
           args=args)
 
     test(test_iter=test_dataloader,
          model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.s}_{args.t}.pth'),
          criterion=criterion)
-
-    log_writer.close()

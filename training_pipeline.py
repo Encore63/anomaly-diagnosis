@@ -5,12 +5,14 @@ from torch.optim import Adam
 from torch.optim import lr_scheduler
 from utils.average_meter import AverageMeter
 from utils.early_stopping import EarlyStopping
+from torch.utils.tensorboard import SummaryWriter
 
 
-def train(train_iter, eval_iter, model, criterion, writer, save_path, args):
+def train(train_iter, eval_iter, model, criterion, args):
+    writer = SummaryWriter(log_dir=args.log_dir)
     optimizer = Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size)
-    stopping_tool = EarlyStopping(save_path=save_path, s=args.s, t=args.t)
+    stopping_tool = EarlyStopping(save_path=args.output_dir, s=args.s, t=args.t)
     global_train_step, global_eval_step = 0, 0
     for epoch in range(args.epochs):
         model.train()
@@ -66,3 +68,5 @@ def train(train_iter, eval_iter, model, criterion, writer, save_path, args):
         if stopping_tool.early_stop:
             print('Early Stopping ...')
             break
+
+    writer.close()
