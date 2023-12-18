@@ -7,7 +7,7 @@ from utils.logger import get_time
 from datasets.tep_dataset import TEPDataset
 from torch.utils.data.dataloader import DataLoader
 from training_pipeline import train
-from testing_pipeline import test
+from testing_pipeline import test, adaptive_test
 
 
 if __name__ == '__main__':
@@ -64,4 +64,10 @@ if __name__ == '__main__':
 
     test(test_iter=test_dataloader,
          model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.s}_{args.t}.pth'),
-         criterion=criterion)
+         criterion=criterion,
+         args=args)
+
+    adaptive_test(test_iter=test_dataloader,
+                  model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.s}_{args.t}.pth'),
+                  criterion=criterion,
+                  args=args)

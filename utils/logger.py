@@ -8,4 +8,4 @@ def get_time(fmt='%Y%m%d_%H%M%S') -> str:
 
 
 def save_config(args) -> None:
-
+    ...
