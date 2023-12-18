@@ -3,10 +3,11 @@ import torch
 from tqdm import tqdm
 from torch.optim import Adam
 from models.tenet import TENet
-from utils.data_utils import DataTransform
+from utils.average_meter import AverageMeter
+from torch.utils.data.dataloader import DataLoader
 
 
-def test(test_iter, model_path, criterion, args):
+def test(test_iter, model_path, args):
     model = torch.load(model_path).to(args.device)
     model.eval()
     count = 0
@@ -19,10 +20,11 @@ def test(test_iter, model_path, criterion, args):
     print('Test Accuracy: {:.4f}%'.format(accuracy * 100))
 
 
-def adaptive_test(test_iter, model_path, criterion, args):
+def adaptive_test(test_dataset, model_path, criterion, args):
     """
     TTBA: Test-time Batch-normalization Adaptation
     """
+    test_iter = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
     model = torch.load(model_path).to(args.device)
     assert isinstance(model, TENet), "Invalid model type!"
     model.ext_block_1.requires_grad_(False)
@@ -39,22 +41,25 @@ def adaptive_test(test_iter, model_path, criterion, args):
 
     optimizer = Adam(model.parameters(), lr=args.lr)
     model.train()
+    loss_meter = AverageMeter('LossMeter')
     ada_loop = tqdm(enumerate(test_iter), total=len(test_iter))
     for _, (data, label) in ada_loop:
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
         output = model(data)
         loss = criterion(output, label)
+        loss_meter.update(loss, args.batch_size)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         ada_loop.set_description(f'Test-time Adapt')
-        ada_loop.set_postfix(loss=f'{loss: .4f}')
+        ada_loop.set_postfix(loss=f'{loss_meter.avg: .4f}')
 
     count = 0
     model.eval()
+    test_iter = DataLoader(test_dataset, shuffle=False)
     for _, (data, label) in enumerate(test_iter):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()

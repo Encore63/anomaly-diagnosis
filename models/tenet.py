@@ -25,7 +25,7 @@ class TENet(nn.Module):
                 ('bn_2', nn.BatchNorm2d(num_features=self.D * self.F1)),
                 ('elu_1', nn.ELU()),
                 ('avg_pool_1', nn.AvgPool2d(kernel_size=(1, 2), stride=2)),
-                ('dropout_1', nn.Dropout(p=0.5))
+                # ('dropout_1', nn.Dropout(p=0.5))
             ])
         )
         self.ext_block_2 = nn.Sequential(
@@ -35,7 +35,7 @@ class TENet(nn.Module):
                 ('bn_3', nn.BatchNorm2d(num_features=self.F2)),
                 ('elu_2', nn.ELU()),
                 ('avg_pool_2', nn.AvgPool2d(kernel_size=(1, 2), stride=1)),
-                ('dropout_2', nn.Dropout(p=0.5))
+                # ('dropout_2', nn.Dropout(p=0.5))
             ])
         )
         self.class_classifier = nn.Sequential(
