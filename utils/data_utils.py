@@ -107,5 +107,5 @@ class DataTransform(object):
 
 
 if __name__ == '__main__':
-    c_data = data_concat(src_path=r'D:\PyProjects\FaultDiagnosis\data\TEP', mode=1)
-    print(c_data[0, 0])
+    c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP', mode=1)
+    print(c_data.shape)
