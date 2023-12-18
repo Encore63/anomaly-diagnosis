@@ -20,6 +20,9 @@ def test(test_iter, model_path, criterion, args):
 
 
 def adaptive_test(test_iter, model_path, criterion, args):
+    """
+    TTBA: Test-time Batch-normalization Adaptation
+    """
     model = torch.load(model_path).to(args.device)
     assert isinstance(model, TENet), "Invalid model type!"
     model.ext_block_1.requires_grad_(False)

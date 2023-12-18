@@ -16,8 +16,6 @@ class TENet(nn.Module):
         self.F1 = f1
         self.F2 = f2
         self.D = depth
-        self.t_s = nn.Sequential()
-        self.t_s.add_module('aa', nn.BatchNorm2d(1))
         self.ext_block_1 = nn.Sequential(
             OrderedDict([
                 ('conv_1', nn.Conv2d(in_channels=1, out_channels=self.F1, kernel_size=(1, 3), stride=1, padding=(0, 1))),
