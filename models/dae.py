@@ -84,7 +84,10 @@ class Decoder(nn.Module):
 class Classifier(nn.Module):
     def __init__(self, in_channel: int, out_channel: int):
         super(Classifier, self).__init__()
-        self.fc_5 = nn.Sequential(nn.ReLU(), nn.Linear(in_channel, out_channel))
+        self.fc_5 = nn.Sequential(
+            nn.ReLU(),
+            nn.Linear(in_channel, out_channel)
+        )
 
     def forward(self, x):
         label = self.fc_5(x)

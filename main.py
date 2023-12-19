@@ -7,7 +7,7 @@ from utils.logger import get_time
 from datasets.tep_dataset import TEPDataset
 from torch.utils.data.dataloader import DataLoader
 from training_pipeline import train
-from testing_pipeline import test
+from testing_pipeline import test, adaptive_test
 
 
 if __name__ == '__main__':
@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--cuda-id', type=int, default=0)
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--num-classes', type=int, default=10)
+    parser.add_argument('--train', action='store_true', help='Train or not.')
     parser.add_argument('--step-size', type=int, default=10, help='step size of learning rate scheduler')
     parser.add_argument('--s', type=int, default=1, help='source domain', choices=[1, 2, 3, 4, 5, 6])
     parser.add_argument('--t', type=int, default=3, help='target domain', choices=[1, 2, 3, 4, 5, 6])
@@ -56,12 +57,18 @@ if __name__ == '__main__':
     eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=True)
     test_dataloader = DataLoader(test_dataset, shuffle=False)
 
-    train(train_iter=train_dataloader,
-          eval_iter=eval_dataloader,
-          model=model,
-          criterion=criterion,
-          args=args)
+    if args.train:
+        train(train_iter=train_dataloader,
+              eval_iter=eval_dataloader,
+              model=model,
+              criterion=criterion,
+              args=args)
 
     test(test_iter=test_dataloader,
          model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.s}_{args.t}.pth'),
-         criterion=criterion)
+         args=args)
+
+    adaptive_test(test_dataset=test_dataset,
+                  model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.s}_{args.t}.pth'),
+                  criterion=criterion,
+                  args=args)
