@@ -1,5 +1,6 @@
 import torch
 
+from models.tenet import TENet
 from utils.data_utils import DataTransform
 
 
