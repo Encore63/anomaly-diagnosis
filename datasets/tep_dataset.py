@@ -22,7 +22,7 @@ class TEPDataset(Dataset):
         elif dataset_mode == 'eval':
             self.data = _data['source_eval'][:, :, :-1]
             self.labels = _data['source_eval'][:, :, -1]
-        elif dataset_mode == 'test':
+        elif dataset_mode == 'test' and data_domains['target'] is not None:
             self.data = _data['target_test'][:, :, :-1]
             self.labels = _data['target_test'][:, :, -1]
         else:
@@ -55,9 +55,5 @@ if __name__ == '__main__':
                          dataset_mode='eval',
                          transform=None)
     data_iter = DataLoader(dataset, batch_size=32, shuffle=True)
-    model = TENet(16, 32, 8, 10)
-    criterion = torch.nn.CrossEntropyLoss()
     for _, (data, label) in enumerate(data_iter):
-        output = model(data)
-        loss = criterion(output, label)
-        print(output.shape, loss)
+        print(data.shape)

@@ -7,7 +7,7 @@ class EarlyStopping(object):
     """
     Stop the training if validation loss does not improve after a given patience
     """
-    def __init__(self, save_path: str, patience: int = 7, verbose: bool = False, delta: int = 0, **kwargs):
+    def __init__(self, args, save_path: str, patience: int = 7, verbose: bool = False, delta: int = 0):
         self.save_path = save_path
         self.patience = patience
         self.verbose = verbose
@@ -16,8 +16,7 @@ class EarlyStopping(object):
         self.early_stop = False
         self.val_loss_min = np.Inf
         self.delta = delta
-        self.source = kwargs['s']
-        self.target = kwargs['t']
+        self.args = args
 
     def __call__(self, val_loss, model):
         score = -val_loss
@@ -37,6 +36,10 @@ class EarlyStopping(object):
     def save_checkpoint(self, val_loss, model):
         if self.verbose:
             print(f'Validation Loss Decreased ({self.val_loss_min: .6f} -> {val_loss: .6f})')
-        path = pathlib.Path(self.save_path).joinpath(f'best_model_{self.source}_{self.target}.pth')
+        if self.args.ckpt_suffix is None:
+            suffix = f'{self.args.s}_{self.args.t}'
+        else:
+            suffix = self.args.ckpt_suffix
+        path = pathlib.Path(self.save_path).joinpath('best_model_{}.pth'.format(suffix))
         torch.save(model, path)
         self.val_loss_min = val_loss

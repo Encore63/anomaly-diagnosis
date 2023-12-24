@@ -76,7 +76,8 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kw
     eval_data = data[train_size:train_size + eval_size, :, :]
     datasets.setdefault('source_train', train_data)
     datasets.setdefault('source_eval', eval_data)
-    datasets.setdefault('target_test', data_concat(src_path, domains['target'], **kwargs))
+    if domains['target'] is not None:
+        datasets.setdefault('target_test', data_concat(src_path, domains['target'], **kwargs))
     return datasets
 
 
@@ -107,5 +108,5 @@ class DataTransform(object):
 
 
 if __name__ == '__main__':
-    c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP', mode=1)
+    c_data = data_concat(src_path=r'D:\PyProjects\FaultDiagnosis\data\TEP', mode=1)
     print(c_data.shape)
