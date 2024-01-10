@@ -11,7 +11,7 @@ from torch.utils.data.dataloader import DataLoader
 def test(test_iter, model_path, args):
     model = torch.load(model_path).to(args.device)
     if args.ttba:
-        model.train()
+        model.train_diagnosis()
     else:
         model.eval()
     count = 0
@@ -79,7 +79,7 @@ def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
     test_loop = tqdm(enumerate(test_iter), total=len(test_iter))
 
     count = 0
-    model.train()
+    model.train_diagnosis()
     for _, (data, label) in test_loop:
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()

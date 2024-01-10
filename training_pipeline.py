@@ -13,14 +13,14 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data.dataloader import DataLoader
 
 
-def train(train_iter, eval_iter, model, criterion, args):
+def train_diagnosis(train_iter, eval_iter, model, criterion, args):
     writer = SummaryWriter(log_dir=f'{args.log_dir}_{args.ckpt_suffix}')
     optimizer = Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size)
     stopping_tool = EarlyStopping(args, save_path=args.output_dir, verbose=True)
     global_train_step, global_eval_step = 0, 0
     for epoch in range(args.epochs):
-        model.train()
+        model.train_diagnosis()
         train_loop = tqdm(enumerate(train_iter), total=len(train_iter))
         loss_meter = AverageMeter('LossMeter')
         acc_meter = AverageMeter('AccMeter')
@@ -159,3 +159,7 @@ def train_with_learned_loss(domains, model, ll_model, criterion, args):
             break
 
     # writer.close()
+
+
+def train_detection():
+    ...

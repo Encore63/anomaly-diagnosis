@@ -7,7 +7,7 @@ from models.mlp import MLP
 from models.tenet import TENet, ReTENet
 from datasets.tep_dataset import TEPDataset
 from torch.utils.data.dataloader import DataLoader
-from training_pipeline import train, train_with_learned_loss
+from training_pipeline import train_diagnosis, train_with_learned_loss
 from testing_pipeline import test, test_with_learned_loss
 
 if __name__ == '__main__':
@@ -73,11 +73,11 @@ if __name__ == '__main__':
         dataloaders.setdefault('test', DataLoader(datasets['test'], shuffle=False))
 
     if check and args.train:
-        train(train_iter=dataloaders['train'],
-              eval_iter=dataloaders['val'],
-              model=model,
-              criterion=criterion,
-              args=args)
+        train_diagnosis(train_iter=dataloaders['train'],
+                        eval_iter=dataloaders['val'],
+                        model=model,
+                        criterion=criterion,
+                        args=args)
 
     if args.train_ll:
         domains = [int(domain) for domain in args.s]
