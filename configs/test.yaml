@@ -1,8 +1,10 @@
 BASIC:
   LOG_FLAG: False
+  SOURCE: 1
+  TARGET: 2
 MODEL:
-  CKPT_SUFFIX: 'norm'
+  CKPT_SUFFIX: 'none'
 TRAINING:
   PIPELINE: ''
 TESTING:
-  PIPELINE: 'norm'
+  PIPELINE: 'tent'

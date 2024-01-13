@@ -4,9 +4,8 @@ import higher
 from tqdm import tqdm
 from torch.optim import Adam
 from algorithm.norm import Norm
-from models.tenet import TENet, ReTENet
+from algorithm.tent import Tent
 from utils.average_meter import AverageMeter
-from torch.utils.data.dataloader import DataLoader
 
 
 def test_default(test_iter, model_path, args):
@@ -22,39 +21,35 @@ def test_default(test_iter, model_path, args):
     print('Test Accuracy: {:.4f}%'.format(accuracy * 100))
 
 
-def test_with_adaptive_norm(test_dataset, model_path, criterion, args):
-    # test_iter = DataLoader(test_dataset, batch_size=args.TRAINING.BATCH_SIZE, shuffle=True)
+def test_with_adaptive_norm(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = Norm(model)
 
-    # optimizer = Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
-    # model.train()
-    # loss_meter = AverageMeter('LossMeter')
-    # ada_loop = tqdm(enumerate(test_iter), total=len(test_iter))
-    # for _, (data, label) in ada_loop:
-    #     if torch.cuda.is_available():
-    #         data, label = data.cuda(), label.cuda()
-    #     output = norm(data)
-    #     loss = criterion(output, label)
-    #     loss_meter.update(loss, args.TRAINING.BATCH_SIZE)
-    #
-    #     optimizer.zero_grad()
-    #     loss.backward()
-    #     optimizer.step()
-    #
-    #     ada_loop.set_description(f'Test-time Adapt')
-    #     ada_loop.set_postfix(loss=f'{loss_meter.avg: .4f}')
-
     count = 0
     model.reset()
-    test_iter = DataLoader(test_dataset, batch_size=args.TESTING.BATCH_SIZE, shuffle=False)
     for _, (data, label) in enumerate(test_iter):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
         output = model(data)
         count += torch.eq(torch.argmax(output, 1), label).sum().item()
     accuracy = count / len(test_iter)
-    print('AdaTest Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('Adaptive Test Accuracy: {:.4f}%'.format(accuracy * 100))
+
+
+def test_with_tent(test_iter, model_path, args):
+    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
+    model = Tent(model, optimizer)
+
+    count = 0
+    model.reset()
+    for _, (data, label) in enumerate(test_iter):
+        if torch.cuda.is_available():
+            data, label = data.cuda(), label.cuda()
+        output = model(data)
+        count += torch.eq(torch.argmax(output, 1), label).sum().item()
+    accuracy = count / len(test_iter)
+    print('Adaptive Test Accuracy: {:.4f}%'.format(accuracy * 100))
 
 
 def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
@@ -88,4 +83,4 @@ def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
         test_loop.set_description('Adaptive Test')
         test_loop.set_postfix(loss=f'{meta_loss_meter.avg:.4f}')
     accuracy = count / len(test_iter)
-    print('Test_LL Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('ARM Test Accuracy: {:.4f}%'.format(accuracy * 100))

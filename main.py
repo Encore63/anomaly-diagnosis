@@ -8,9 +8,9 @@ from utils.logger import save_config
 from models.mlp import MLP
 from models.tenet import TENet, ReTENet
 from datasets.tep_dataset import TEPDataset
-from torch.utils.data.dataloader import DataLoader
-from training_pipeline import train_default, train_with_learned_loss
-from testing_pipeline import test_default, test_with_learned_loss, test_with_adaptive_norm
+# from torch.utils.data.dataloader import DataLoader
+from training_pipeline import *
+from testing_pipeline import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -82,19 +82,26 @@ if __name__ == '__main__':
 
     if cfg.TESTING.PIPELINE == 'default':
         test_default(test_iter=dataloaders['test'],
-                     model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
+                     model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
+                     joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
                      args=cfg)
 
     if cfg.TESTING.PIPELINE == 'norm':
-        test_with_adaptive_norm(test_dataset=datasets['test'],
+        test_with_adaptive_norm(test_iter=dataloaders['test'],
                                 model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
                                 joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
-                                criterion=criterion,
                                 args=cfg)
+
+    if cfg.TESTING.PIPELINE == 'tent':
+        test_with_tent(test_iter=dataloaders['test'],
+                       model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
+                       joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
+                       args=cfg)
 
     if cfg.TESTING.PIPELINE == 'arm_ll':
         test_with_learned_loss(test_iter=dataloaders['test'],
-                               model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(
-                                   f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
-                               ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(f'learned_loss.pth'),
+                               model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
+                               joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
+                               ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
+                               joinpath(f'learned_loss.pth'),
                                args=cfg)
