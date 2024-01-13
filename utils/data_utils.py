@@ -76,8 +76,10 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kw
     eval_data = data[train_size:train_size + eval_size, :, :]
     datasets.setdefault('source_train', train_data)
     datasets.setdefault('source_eval', eval_data)
-    if domains['target'] is not None:
+    if domains['target'] != domains['source'] and domains['target'] is not None:
         datasets.setdefault('target_test', data_concat(src_path, domains['target'], **kwargs))
+    else:
+        datasets.setdefault('target_test', data[train_size + eval_size:, :, :])
     return datasets
 
 

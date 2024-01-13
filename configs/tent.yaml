@@ -1,4 +1,4 @@
 TESTING:
   PIPELINE: 'tent'
 MODEL:
-  CKPT_SUFFIX: 'none'
+  CKPT_SUFFIX: ''

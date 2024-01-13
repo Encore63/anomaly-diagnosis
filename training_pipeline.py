@@ -14,7 +14,10 @@ from torch.utils.data.dataloader import DataLoader
 
 
 def train_default(train_iter, eval_iter, model, criterion, args):
-    writer = SummaryWriter(log_dir=f'{args.PATH.LOG_PATH}_{args.MODEL.CKPT_SUFFIX}')
+    log_dir = f'{args.PATH.LOG_PATH}_{args.MODEL.CKPT_SUFFIX}' \
+        if args.MODEL.CKPT_SUFFIX != '' \
+        else f'{args.PATH.LOG_PATH}'
+    writer = SummaryWriter(log_dir=log_dir)
     optimizer = Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=args.TRAINING.STEP_SIZE)
     stopping_tool = EarlyStopping(args, save_path=args.PATH.CKPT_PATH, verbose=True)

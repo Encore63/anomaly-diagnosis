@@ -3,8 +3,7 @@ import higher
 
 from tqdm import tqdm
 from torch.optim import Adam
-from algorithm.norm import Norm
-from algorithm.tent import Tent
+from algorithm import tent, norm
 from utils.average_meter import AverageMeter
 
 
@@ -23,10 +22,9 @@ def test_default(test_iter, model_path, args):
 
 def test_with_adaptive_norm(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
-    model = Norm(model)
+    model = norm.Norm(model)
 
     count = 0
-    model.reset()
     for _, (data, label) in enumerate(test_iter):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
@@ -39,7 +37,8 @@ def test_with_adaptive_norm(test_iter, model_path, args):
 def test_with_tent(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
-    model = Tent(model, optimizer)
+    model = tent.configure_model(model)
+    model = tent.Tent(model, optimizer)
 
     count = 0
     model.reset()

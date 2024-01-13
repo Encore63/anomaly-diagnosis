@@ -80,28 +80,25 @@ if __name__ == '__main__':
                                 criterion=criterion,
                                 args=cfg)
 
+    model_name = f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth' if cfg.MODEL.CKPT_SUFFIX != '' else 'best_model.pth'
+
     if cfg.TESTING.PIPELINE == 'default':
         test_default(test_iter=dataloaders['test'],
-                     model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
-                     joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
+                     model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
                      args=cfg)
 
     if cfg.TESTING.PIPELINE == 'norm':
         test_with_adaptive_norm(test_iter=dataloaders['test'],
-                                model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
-                                joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
+                                model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
                                 args=cfg)
 
     if cfg.TESTING.PIPELINE == 'tent':
         test_with_tent(test_iter=dataloaders['test'],
-                       model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
-                       joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
+                       model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
                        args=cfg)
 
     if cfg.TESTING.PIPELINE == 'arm_ll':
         test_with_learned_loss(test_iter=dataloaders['test'],
-                               model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
-                               joinpath(f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth'),
-                               ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).
-                               joinpath(f'learned_loss.pth'),
+                               model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                               ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(f'learned_loss.pth'),
                                args=cfg)

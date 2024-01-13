@@ -1,0 +1,7 @@
+BASIC:
+  SOURCE: 1
+  TARGET: 3
+TESTING:
+  PIPELINE: 'norm'
+MODEL:
+  CKPT_SUFFIX: ''
