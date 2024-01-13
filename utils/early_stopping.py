@@ -36,10 +36,10 @@ class EarlyStopping(object):
     def save_checkpoint(self, val_loss, model):
         if self.verbose:
             print(f'Validation Loss Decreased ({self.val_loss_min: .6f} -> {val_loss: .6f})')
-        if self.args.ckpt_suffix is None:
-            suffix = f'{self.args.s}_{self.args.t}'
+        if self.args.MODEL.CKPT_SUFFIX is None:
+            suffix = f'{self.args.BASIC.SOURCE}_{self.args.BASIC.TARGET}'
         else:
-            suffix = self.args.ckpt_suffix
+            suffix = self.args.MODEL.CKPT_SUFFIX
         path = pathlib.Path(self.save_path).joinpath('best_model_{}.pth'.format(suffix))
         torch.save(model, path)
         self.val_loss_min = val_loss

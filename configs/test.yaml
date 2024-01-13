@@ -1,0 +1,8 @@
+BASIC:
+  LOG_FLAG: False
+MODEL:
+  CKPT_SUFFIX: 'norm'
+TRAINING:
+  PIPELINE: ''
+TESTING:
+  PIPELINE: 'norm'

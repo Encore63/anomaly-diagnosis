@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torchinfo import summary
 from collections import OrderedDict
+from models.attention_module import AttentionModule
 from models.adversarial_module import AdversarialModule
 from models.self_supervised_module import SelfSupervisedModule
 
@@ -100,17 +101,18 @@ class ReTENet(nn.Module):
         )
         self.self_supervised_branch = SelfSupervisedModule()
         self.adversarial_branch = AdversarialModule(in_features=3840, hidden_dims=[1920, 960, num_classes])
+        self.attention_block = AttentionModule(embed_dim=32, num_heads=4)
 
     def forward(self, x):
         features = self.ext_block_1(x)
         features = self.ext_block_2(features)
-        features = features.view(features.shape[0], -1)
+        features = features.reshape(features.shape[0], -1)
         output = self.class_classifier(features)
         return output
 
 
 if __name__ == '__main__':
     data = torch.randn((32, 1, 10, 50))
-    model = TENet(f1=16, f2=32, depth=8, num_classes=10)
+    model = ReTENet(f1=16, f2=32, depth=8, num_classes=10)
     out = model(data)
     summary(model, input_data=data)
