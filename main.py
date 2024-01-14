@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cfg', dest='cfg_file', type=str, required=True)
     parser.add_argument("--opts", default=None, nargs=argparse.REMAINDER,
-                        help="See conf.py for all options")
+                        help="See default.py for all options")
     args = parser.parse_args()
 
     merge_from_file(args.cfg_file)
@@ -82,23 +82,24 @@ if __name__ == '__main__':
 
     model_name = f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth' if cfg.MODEL.CKPT_SUFFIX != '' else 'best_model.pth'
 
-    if cfg.TESTING.PIPELINE == 'default':
-        test_default(test_iter=dataloaders['test'],
-                     model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
-                     args=cfg)
+    for testing_pipeline in cfg.TESTING.PIPELINE:
+        if testing_pipeline == 'default':
+            test_default(test_iter=dataloaders['test'],
+                         model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                         args=cfg)
 
-    if cfg.TESTING.PIPELINE == 'norm':
-        test_with_adaptive_norm(test_iter=dataloaders['test'],
-                                model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
-                                args=cfg)
+        if testing_pipeline == 'norm':
+            test_with_adaptive_norm(test_iter=dataloaders['test'],
+                                    model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                                    args=cfg)
 
-    if cfg.TESTING.PIPELINE == 'tent':
-        test_with_tent(test_iter=dataloaders['test'],
-                       model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
-                       args=cfg)
+        if testing_pipeline == 'tent':
+            test_with_tent(test_iter=dataloaders['test'],
+                           model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                           args=cfg)
 
-    if cfg.TESTING.PIPELINE == 'arm_ll':
-        test_with_learned_loss(test_iter=dataloaders['test'],
-                               model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
-                               ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(f'learned_loss.pth'),
-                               args=cfg)
+        if testing_pipeline == 'arm_ll':
+            test_with_learned_loss(test_iter=dataloaders['test'],
+                                   model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                                   ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(f'learned_loss.pth'),
+                                   args=cfg)

@@ -1,7 +1,7 @@
-import pathlib
-
 import torch
 import higher
+import pathlib
+import logging
 
 from tqdm import tqdm
 from torch.optim import Adam
@@ -14,6 +14,7 @@ from torch.utils.data.dataloader import DataLoader
 
 
 def train_default(train_iter, eval_iter, model, criterion, args):
+    log_tool = logging.getLogger(__name__)
     log_dir = f'{args.PATH.LOG_PATH}_{args.MODEL.CKPT_SUFFIX}' \
         if args.MODEL.CKPT_SUFFIX != '' \
         else f'{args.PATH.LOG_PATH}'
@@ -71,6 +72,8 @@ def train_default(train_iter, eval_iter, model, criterion, args):
             eval_loop.set_postfix(acc='{:.4f}'.format(acc_meter.avg),
                                   loss='{:.4f}'.format(loss_meter.avg))
             global_eval_step += 1
+        if args.BASIC.LOG_FLAG:
+            log_tool.info(f'[EPOCH {epoch + 1: <2d}/{args.TRAINING.EPOCHS}] ACC: {acc_meter.avg * 100:.4f}%')
 
         stopping_tool(loss_meter.avg, model)
         if stopping_tool.early_stop:

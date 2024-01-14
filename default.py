@@ -5,7 +5,7 @@ _C = CfgNode()
 cfg = _C
 
 """
-    Basic Hyper-parameters
+    BASIC HYPER_PARAMETERS
 """
 _C.BASIC = CfgNode()
 _C.BASIC.RANDOM_SEED = 2024
@@ -41,7 +41,7 @@ _C.TRAINING.PIPELINE = 'default'  # TRAINING PIPELINE CHOICE ('default', 'arm_ll
 """
 _C.TESTING = CfgNode()
 _C.TESTING.BATCH_SIZE = 1
-_C.TESTING.PIPELINE = 'default'  # TESTING PIPELINE CHOICE ('default', 'arm_ll', 'tent')
+_C.TESTING.PIPELINE = ['default']  # TESTING PIPELINE CHOICE ('default', 'arm_ll', 'tent')
 
 """
     PATH OPTION

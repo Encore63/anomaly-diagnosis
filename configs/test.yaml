@@ -1,11 +1,15 @@
 BASIC:
   LOG_FLAG: False
   SOURCE: 1
-  TARGET: 2
+  TARGET: 3
   SPLIT_RATIO: [0.7, 0.2]
 MODEL:
   CKPT_SUFFIX: ''
 TRAINING:
   PIPELINE: ''
 TESTING:
-  PIPELINE: 'tent'
+  BATCH_SIZE: 256
+  PIPELINE:
+    - 'default'
+    - 'norm'
+    - 'tent'

@@ -15,7 +15,7 @@ def save_config(configs, cfg_file) -> None:
     configs.BASIC.LOG_TIME = get_time()
     file_name = Path(cfg_file).name.replace('.yaml', '_{}.txt'.format(configs.BASIC.LOG_TIME))
     logging.basicConfig(level=logging.INFO,
-                        format='[%(asctime)s] [%(filename)s: %(lineno)4d] \n%(message)s',
+                        format='[%(asctime)s] [%(filename)s: %(lineno)4d] %(message)s',
                         datefmt="%y/%m/%d %H:%M:%S",
                         handlers=[
                             logging.FileHandler(log_path.joinpath(file_name)),
@@ -23,5 +23,5 @@ def save_config(configs, cfg_file) -> None:
                         ])
     logger = logging.getLogger(__name__)
     version = [torch.__version__, torch.version.cuda]
-    logger.info("pyTorch version: torch={}, cuda={}".format(*version))
-    logger.info(configs)
+    logger.info('\nversion: torch={}, cuda={}'.format(*version))
+    logger.info('\n' + configs.__str__())

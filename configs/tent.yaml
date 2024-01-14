@@ -1,4 +1,6 @@
 TESTING:
-  PIPELINE: 'tent'
+  BATCH_SIZE: 128
+  PIPELINE:
+    - 'tent'
 MODEL:
   CKPT_SUFFIX: ''

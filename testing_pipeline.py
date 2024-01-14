@@ -15,9 +15,9 @@ def test_default(test_iter, model_path, args):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
         output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item()
+        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
     accuracy = count / len(test_iter)
-    print('Test Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('{: <9s} Test Accuracy: {:.4f}%'.format('(Default)', accuracy * 100))
 
 
 def test_with_adaptive_norm(test_iter, model_path, args):
@@ -29,9 +29,9 @@ def test_with_adaptive_norm(test_iter, model_path, args):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
         output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item()
+        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
     accuracy = count / len(test_iter)
-    print('Adaptive Test Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Norm)', accuracy * 100))
 
 
 def test_with_tent(test_iter, model_path, args):
@@ -46,9 +46,9 @@ def test_with_tent(test_iter, model_path, args):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
         output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item()
+        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
     accuracy = count / len(test_iter)
-    print('Adaptive Test Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
 
 
 def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
@@ -77,9 +77,9 @@ def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
                 meta_loss_meter.update(spt_loss.item(), args.batch_size)
 
             logits = f_net(data)
-            count += torch.eq(torch.argmax(logits, 1), label).float().mean()
+            count += torch.eq(torch.argmax(logits, 1), label).float().mean() / logits.shape[0]
 
         test_loop.set_description('Adaptive Test')
         test_loop.set_postfix(loss=f'{meta_loss_meter.avg:.4f}')
     accuracy = count / len(test_iter)
-    print('ARM Test Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('(ARM) Test Accuracy: {:.4f}%'.format(accuracy * 100))
