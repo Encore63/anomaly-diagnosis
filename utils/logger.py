@@ -10,7 +10,7 @@ def get_time(fmt='%Y%m%d_%H%M%S') -> str:
     return time_stamp
 
 
-def save_config(configs, cfg_file) -> None:
+def save_log(configs, cfg_file) -> None:
     log_path = Path(configs.PATH.LOG_PATH)
     configs.BASIC.LOG_TIME = get_time()
     file_name = Path(cfg_file).name.replace('.yaml', '_{}.txt'.format(configs.BASIC.LOG_TIME))

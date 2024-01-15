@@ -11,9 +11,9 @@ from torch.utils.data.dataloader import DataLoader
 class TEPDataset(Dataset):
     def __init__(self, src_path: str, split_ratio: Dict, data_domains: Dict,
                  dataset_mode: str, seed: int = None, data_dim: int = 4, neglect: list = None,
-                 num_classes: int = 10, transform=None):
+                 time_win: int = 10, num_classes: int = 10, transform=None):
         _data = data_split(src_path, split_ratio, data_domains, random_seed=seed,
-                           neglect=neglect, num_classes=num_classes)
+                           neglect=neglect, num_classes=num_classes, time_win=time_win)
         self.data = None
         self.labels = None
         if dataset_mode == 'train':

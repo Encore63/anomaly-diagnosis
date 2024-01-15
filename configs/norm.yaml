@@ -1,6 +1,9 @@
 BASIC:
   SOURCE: 1
   TARGET: 2
+  CUDA_ID: 1
+DATA:
+  TIME_WINDOW: 20
 TRAINING:
   EPOCHS: 100
 TESTING:
@@ -8,4 +11,5 @@ TESTING:
   PIPELINE:
     - 'norm'
 MODEL:
+  NAME: 'ResNet'
   CKPT_SUFFIX: ''

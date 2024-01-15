@@ -11,43 +11,44 @@ def test_default(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model.eval()
     count = 0
-    for _, (data, label) in enumerate(test_iter):
-        if torch.cuda.is_available():
-            data, label = data.cuda(), label.cuda()
-        output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
-    accuracy = count / len(test_iter)
+    with torch.no_grad():
+        for _, (data, label) in enumerate(test_iter):
+            if torch.cuda.is_available():
+                data, label = data.cuda(), label.cuda()
+            output = model(data)
+            count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
+        accuracy = count / len(test_iter)
     print('{: <9s} Test Accuracy: {:.4f}%'.format('(Default)', accuracy * 100))
 
 
 def test_with_adaptive_norm(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = norm.Norm(model)
-
     count = 0
-    for _, (data, label) in enumerate(test_iter):
-        if torch.cuda.is_available():
-            data, label = data.cuda(), label.cuda()
-        output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
-    accuracy = count / len(test_iter)
+    with torch.no_grad():
+        for _, (data, label) in enumerate(test_iter):
+            if torch.cuda.is_available():
+                data, label = data.cuda(), label.cuda()
+            output = model(data)
+            count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
+        accuracy = count / len(test_iter)
     print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Norm)', accuracy * 100))
 
 
 def test_with_tent(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
     model = tent.configure_model(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
     model = tent.Tent(model, optimizer)
 
     count = 0
-    model.reset()
-    for _, (data, label) in enumerate(test_iter):
-        if torch.cuda.is_available():
-            data, label = data.cuda(), label.cuda()
-        output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
-    accuracy = count / len(test_iter)
+    with torch.no_grad():
+        for _, (data, label) in enumerate(test_iter):
+            if torch.cuda.is_available():
+                data, label = data.cuda(), label.cuda()
+            output = model(data)
+            count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
+        accuracy = count / len(test_iter)
     print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
 
 
@@ -55,8 +56,8 @@ def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     ll_model = torch.load(ll_model_path).to(args.BASIC.DEVICE)
     params = list(model.parameters()) + list(ll_model.parameters())
-    optimizer = Adam(params, lr=args.TRAINING.LEARNING_RATE)
-    inner_optimizer = Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
+    optimizer = Adam(params, lr=args.OPTIM.LEARNING_RATE)
+    inner_optimizer = Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
     test_loop = tqdm(enumerate(test_iter), total=len(test_iter))
 
     count = 0

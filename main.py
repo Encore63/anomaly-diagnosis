@@ -4,9 +4,10 @@ import argparse
 
 from default import cfg, merge_from_file
 from utils.logger import get_time
-from utils.logger import save_config
+from utils.logger import save_log
 from models.mlp import MLP
 from models.tenet import TENet, ReTENet
+from models.resnet import resnet18
 from datasets.tep_dataset import TEPDataset
 # from torch.utils.data.dataloader import DataLoader
 from training_pipeline import *
@@ -21,7 +22,7 @@ if __name__ == '__main__':
 
     merge_from_file(args.cfg_file)
     if cfg.BASIC.LOG_FLAG:
-        save_config(cfg, args.cfg_file)
+        save_log(cfg, args.cfg_file)
 
     torch.manual_seed(cfg.BASIC.RANDOM_SEED)
     torch.cuda.manual_seed(cfg.BASIC.RANDOM_SEED)
@@ -35,9 +36,11 @@ if __name__ == '__main__':
         pathlib.Path(cfg.PATH.CKPT_PATH).mkdir()
 
     if cfg.MODEL.NAME == 'ReTENet':
-        model = ReTENet(f1=16, f2=32, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+        model = ReTENet(f1=16, f2=256, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+    elif cfg.MODEL.NAME == 'TENet':
+        model = TENet(f1=16, f2=256, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     else:
-        model = TENet(f1=16, f2=32, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+        model = resnet18().to(cfg.BASIC.DEVICE)
 
     if cfg.TRAINING.PIPELINE == 'arm_ll':
         ll_model = MLP(in_features=cfg.MODEL.NUM_CLASSES, hidden_dim=32,
@@ -55,11 +58,14 @@ if __name__ == '__main__':
     datasets, dataloaders = {}, {}
     data_domains = {'source': int(cfg.BASIC.SOURCE), 'target': int(cfg.BASIC.TARGET)}
     datasets.setdefault('train', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
-                                            'train', seed=cfg.BASIC.RANDOM_SEED))
+                                            'train', seed=cfg.BASIC.RANDOM_SEED,
+                                            time_win=cfg.DATA.TIME_WINDOW))
     datasets.setdefault('val', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
-                                          'eval', seed=cfg.BASIC.RANDOM_SEED))
+                                          'eval', seed=cfg.BASIC.RANDOM_SEED,
+                                          time_win=cfg.DATA.TIME_WINDOW))
     datasets.setdefault('test', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
-                                           'test', seed=cfg.BASIC.RANDOM_SEED))
+                                           'test', seed=cfg.BASIC.RANDOM_SEED,
+                                           time_win=cfg.DATA.TIME_WINDOW))
 
     dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))
     dataloaders.setdefault('val', DataLoader(datasets['val'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))

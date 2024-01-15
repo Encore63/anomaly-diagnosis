@@ -19,9 +19,10 @@ def train_default(train_iter, eval_iter, model, criterion, args):
         if args.MODEL.CKPT_SUFFIX != '' \
         else f'{args.PATH.LOG_PATH}'
     writer = SummaryWriter(log_dir=log_dir)
-    optimizer = Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=args.TRAINING.STEP_SIZE)
-    stopping_tool = EarlyStopping(args, save_path=args.PATH.CKPT_PATH, verbose=True)
+    optimizer = Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=args.OPTIM.STEP_SIZE)
+    stopping_tool = EarlyStopping(args, save_path=args.PATH.CKPT_PATH, verbose=True,
+                                  patience=args.TRAINING.PATIENCE, delta=args.TRAINING.DELTA)
     global_train_step, global_eval_step = 0, 0
     for epoch in range(args.TRAINING.EPOCHS):
         model.train()
@@ -89,8 +90,8 @@ def train_with_learned_loss(domains, model, ll_model, criterion, args):
     """
     # writer = SummaryWriter(log_dir=f'{args.log_dir}_{args.ckpt_suffix}')
     params = list(model.parameters()) + list(ll_model.parameters())
-    optimizer = Adam(params, lr=args.TRAINING.LEARNING_RATE)
-    inner_optimizer = Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
+    optimizer = Adam(params, lr=args.OPTIM.LEARNING_RATE)
+    inner_optimizer = Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
     stopping_tool = EarlyStopping(args, save_path=args.PATH.CKPT_PATH, verbose=True)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=args.TRAINING.STEP_SIZE)
     global_train_step, global_eval_step = 0, 0
