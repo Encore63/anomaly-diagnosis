@@ -24,7 +24,7 @@ def test(test_iter, model_path, args):
     print('Test Accuracy: {:.4f}%'.format(accuracy * 100))
 
 
-def adaptive_test(test_dataset, model_path, criterion, args):
+def adaptive_test(test_dataset, model_path, criterion, epochs, args):
     test_iter = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
     model = torch.load(model_path).to(args.device)
     assert isinstance(model, TENet) or isinstance(model, ReTENet), "Invalid model type!"
@@ -44,19 +44,20 @@ def adaptive_test(test_dataset, model_path, criterion, args):
     model.train()
     loss_meter = AverageMeter('LossMeter')
     ada_loop = tqdm(enumerate(test_iter), total=len(test_iter))
-    for _, (data, label) in ada_loop:
-        if torch.cuda.is_available():
-            data, label = data.cuda(), label.cuda()
-        output = model(data)
-        loss = criterion(output, label)
-        loss_meter.update(loss, args.batch_size)
+    for epoch in range(epochs):
+        for _, (data, label) in ada_loop:
+            if torch.cuda.is_available():
+                data, label = data.cuda(), label.cuda()
+            output = model(data)
+            loss = criterion(output, label)
+            loss_meter.update(loss, args.batch_size)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        ada_loop.set_description(f'Test-time Adapt')
-        ada_loop.set_postfix(loss=f'{loss_meter.avg: .4f}')
+            ada_loop.set_description(f'Test-time Adapt [{epoch/epochs}]')
+            ada_loop.set_postfix(loss=f'{loss_meter.avg: .4f}')
 
     count = 0
     model.eval()

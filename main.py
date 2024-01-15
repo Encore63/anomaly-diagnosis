@@ -8,7 +8,7 @@ from models.tenet import TENet, ReTENet
 from datasets.tep_dataset import TEPDataset
 from torch.utils.data.dataloader import DataLoader
 from training_pipeline import train, train_with_learned_loss
-from testing_pipeline import test, test_with_learned_loss
+from testing_pipeline import test, test_with_learned_loss, adaptive_test
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -22,16 +22,18 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--inner-epochs', type=int, default=1, help='num of inner loop iterations')
     parser.add_argument('--num-classes', type=int, default=10)
-    parser.add_argument('--train', action='store_true', help='train or not')
-    parser.add_argument('--train-ll', action='store_true', help='choice of train with learned loss')
-    parser.add_argument('--test-ll', action='store_true', help='choice of test with learned loss')
-    parser.add_argument('--ttba', action='store_true', help='choice of TTBA')
     parser.add_argument('--step-size', type=int, default=10, help='step size of learning rate scheduler')
     parser.add_argument('--s', type=str, default='1', help='source domain')
     parser.add_argument('--t', type=str, default='3', help='target domain')
     parser.add_argument('--ckpt-suffix', type=str, default=None, help='suffix of saved checkpoint')
     parser.add_argument('--log-dir', type=str, default=r'./logs', help='save path of logs')
     parser.add_argument('--output-dir', type=str, default=r'./checkpoints', help='save path of model weights')
+
+    parser.add_argument('--train', action='store_true', help='train or not')
+    parser.add_argument('--train-ll', action='store_true', help='choice of train with learned loss')
+    parser.add_argument('--test-ll', action='store_true', help='choice of test with learned loss')
+    parser.add_argument('--ttba', action='store_true', help='choice of TTBA')
+    parser.add_argument('--adatest', action='store_true', help='choice of adaptive test')
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -92,6 +94,13 @@ if __name__ == '__main__':
                                model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.ckpt_suffix}.pth'),
                                ll_model_path=pathlib.Path(args.output_dir).joinpath(f'learned_loss.pth'),
                                args=args)
+
+    if args.adatest:
+        adaptive_test(test_dataset=datasets['test'],
+                      model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.ckpt_suffix}.pth'),
+                      criterion=criterion,
+                      epochs=5,
+                      args=args)
 
     test(test_iter=dataloaders['test'],
          model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.ckpt_suffix}.pth'),
