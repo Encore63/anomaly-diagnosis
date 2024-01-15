@@ -27,13 +27,13 @@ class Encoder(nn.Module):
             nn.BatchNorm2d(num_features=32),
             nn.ReLU(inplace=True))
 
-        self.fc_1 = nn.Linear(16 * 16 * 32, 256)
+        self.fc_1 = nn.Linear(5 * 25 * 32, 256)
         self.fc_2 = nn.Linear(256, out_channel)
         self.relu = nn.ReLU()
 
     def forward(self, x):
         noise = torch.rand(x.shape) * x.mean() / 10
-        x = x + noise.cuda()
+        x = x + noise
         output = self.conv_1(x)
         output = self.conv_2(output)
         output = self.conv_3(output)
@@ -44,36 +44,39 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, in_channel: int):
+    def __init__(self, in_channel: int, dim: int = 1):
         super(Decoder, self).__init__()
+
+        self.dim = dim
+
         self.fc_3 = nn.Linear(in_channel, 256)
-        self.fc_4 = nn.Linear(256, 8192)
+        self.fc_4 = nn.Linear(256, dim * 5 * 25)
         self.relu = nn.ReLU()
 
         self.trans_conv_1 = nn.Sequential(
-            nn.ConvTranspose2d(32, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(num_features=32),
+            nn.ConvTranspose2d(dim, dim, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(num_features=dim),
             nn.ReLU(inplace=True))
 
         self.trans_conv_2 = nn.Sequential(
-            nn.ConvTranspose2d(32, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(num_features=32),
+            nn.ConvTranspose2d(dim, dim, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(num_features=dim),
             nn.ReLU(inplace=True))
 
         self.trans_conv_3 = nn.Sequential(
-            nn.ConvTranspose2d(32, 32, kernel_size=2, stride=2, padding=0),
-            nn.BatchNorm2d(num_features=32),
+            nn.ConvTranspose2d(dim, dim, kernel_size=2, stride=2, padding=0),
+            nn.BatchNorm2d(num_features=dim),
             nn.ReLU(inplace=True))
 
         self.trans_conv_4 = nn.Sequential(
-            nn.ConvTranspose2d(32, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(num_features=32),
+            nn.ConvTranspose2d(dim, dim, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(num_features=dim),
             nn.ReLU(inplace=True))
 
     def forward(self, x):
         h3 = self.relu(self.fc_3(x))
         output = self.relu(self.fc_4(h3))
-        output = output.view(output.size(0), 32, 16, 16)
+        output = output.view(output.size(0), self.dim, 5, 25)
         output = self.trans_conv_1(output)
         output = self.trans_conv_2(output)
         output = self.trans_conv_3(output)
@@ -95,20 +98,21 @@ class Classifier(nn.Module):
 
 
 class DenoisingAutoEncoder(nn.Module):
-    def __init__(self, in_channel: int, out_channel: int):
+    def __init__(self, in_channel: int, out_channel: int, dim: int):
         super(DenoisingAutoEncoder, self).__init__()
         self.encoder = Encoder(in_channel, out_channel)
-        self.decoder = Decoder(out_channel)
+        self.decoder = Decoder(out_channel, dim)
 
     def forward(self, x):
         embedding = self.encoder(x)
-        # output = self.decoder(embedding)
-        return embedding
+        output = self.decoder(embedding)
+        return output
 
 
 if __name__ == '__main__':
-    data = torch.rand((1, 1, 10, 50)).cuda()
-    model = DenoisingAutoEncoder(in_channel=1, out_channel=1)
-    out = model(data).cuda()
-    print(out.shape)
-    # summary(model, input_data=data)
+    data = torch.rand((1, 1, 10, 50))
+    model = DenoisingAutoEncoder(in_channel=1, out_channel=1, dim=1)
+    out = model(data)
+    summary(model, input_data=data)
+
+

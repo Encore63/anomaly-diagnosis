@@ -1,0 +1,7 @@
+TRAINING:
+  PIPELINE: 'arm_ll'
+TESTING:
+  PIPELINE:
+    - 'arm_ll'
+MODEL:
+  CKPT_SUFFIX: 'arm_ll'

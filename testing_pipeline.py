@@ -3,89 +3,69 @@ import higher
 
 from tqdm import tqdm
 from torch.optim import Adam
-from models.tenet import TENet, ReTENet
+from algorithm import tent, norm
 from utils.average_meter import AverageMeter
-from torch.utils.data.dataloader import DataLoader
 
 
-def test(test_iter, model_path, args):
-    model = torch.load(model_path).to(args.device)
-    if args.ttba:
-        model.train()
-    else:
-        model.eval()
-    count = 0
-    for _, (data, label) in enumerate(test_iter):
-        if torch.cuda.is_available():
-            data, label = data.cuda(), label.cuda()
-        output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item()
-    accuracy = count / len(test_iter)
-    print('Test Accuracy: {:.4f}%'.format(accuracy * 100))
-
-
-def adaptive_test(test_dataset, model_path, criterion, epochs, args):
-    test_iter = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
-    model = torch.load(model_path).to(args.device)
-    assert isinstance(model, TENet) or isinstance(model, ReTENet), "Invalid model type!"
-    model.ext_block_1.requires_grad_(False)
-    model.ext_block_1.bn_1.requires_grad_(True)
-    model.ext_block_1.bn_1.reset_parameters()
-    model.ext_block_1.bn_2.requires_grad_(True)
-    model.ext_block_1.bn_2.reset_parameters()
-
-    model.ext_block_2.requires_grad_(False)
-    model.ext_block_2.bn_3.requires_grad_(True)
-    model.ext_block_2.bn_3.reset_parameters()
-
-    model.class_classifier.requires_grad_(False)
-
-    optimizer = Adam(model.parameters(), lr=args.lr)
-    model.train()
-    loss_meter = AverageMeter('LossMeter')
-    ada_loop = tqdm(enumerate(test_iter), total=len(test_iter))
-    for epoch in range(epochs):
-        for _, (data, label) in ada_loop:
-            if torch.cuda.is_available():
-                data, label = data.cuda(), label.cuda()
-            output = model(data)
-            loss = criterion(output, label)
-            loss_meter.update(loss, args.batch_size)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            ada_loop.set_description(f'Test-time Adapt [{epoch/epochs}]')
-            ada_loop.set_postfix(loss=f'{loss_meter.avg: .4f}')
-
-    count = 0
+def test_default(test_iter, model_path, args):
+    model = torch.load(model_path).to(args.BASIC.DEVICE)
     model.eval()
-    test_iter = DataLoader(test_dataset, shuffle=False)
+    count = 0
     for _, (data, label) in enumerate(test_iter):
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
         output = model(data)
-        count += torch.eq(torch.argmax(output, 1), label).sum().item()
+        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
     accuracy = count / len(test_iter)
-    print('AdaTest Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('{: <9s} Test Accuracy: {:.4f}%'.format('(Default)', accuracy * 100))
+
+
+def test_with_adaptive_norm(test_iter, model_path, args):
+    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    model = norm.Norm(model)
+
+    count = 0
+    for _, (data, label) in enumerate(test_iter):
+        if torch.cuda.is_available():
+            data, label = data.cuda(), label.cuda()
+        output = model(data)
+        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
+    accuracy = count / len(test_iter)
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Norm)', accuracy * 100))
+
+
+def test_with_tent(test_iter, model_path, args):
+    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
+    model = tent.configure_model(model)
+    model = tent.Tent(model, optimizer)
+
+    count = 0
+    model.reset()
+    for _, (data, label) in enumerate(test_iter):
+        if torch.cuda.is_available():
+            data, label = data.cuda(), label.cuda()
+        output = model(data)
+        count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
+    accuracy = count / len(test_iter)
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
 
 
 def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
-    model = torch.load(model_path).to(args.device)
-    ll_model = torch.load(ll_model_path).to(args.device)
+    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    ll_model = torch.load(ll_model_path).to(args.BASIC.DEVICE)
     params = list(model.parameters()) + list(ll_model.parameters())
-    optimizer = Adam(params, lr=args.lr)
-    inner_optimizer = Adam(model.parameters(), lr=args.lr)
+    optimizer = Adam(params, lr=args.TRAINING.LEARNING_RATE)
+    inner_optimizer = Adam(model.parameters(), lr=args.TRAINING.LEARNING_RATE)
     test_loop = tqdm(enumerate(test_iter), total=len(test_iter))
 
     count = 0
-    model.train()
+    model.train_default()
     for _, (data, label) in test_loop:
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
         # Meta learning
-        with higher.innerloop_ctx(model, inner_optimizer, args.device,
+        with higher.innerloop_ctx(model, inner_optimizer, args.BASIC.DEVICE,
                                   copy_initial_weights=False) as (f_net, diff_opt):
             # Inner loop
             meta_loss_meter = AverageMeter('MetaLossMeter')
@@ -97,9 +77,9 @@ def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
                 meta_loss_meter.update(spt_loss.item(), args.batch_size)
 
             logits = f_net(data)
-            count += torch.eq(torch.argmax(logits, 1), label).float().mean()
+            count += torch.eq(torch.argmax(logits, 1), label).float().mean() / logits.shape[0]
 
         test_loop.set_description('Adaptive Test')
         test_loop.set_postfix(loss=f'{meta_loss_meter.avg:.4f}')
     accuracy = count / len(test_iter)
-    print('Test_LL Accuracy: {:.4f}%'.format(accuracy * 100))
+    print('(ARM) Test Accuracy: {:.4f}%'.format(accuracy * 100))

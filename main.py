@@ -2,106 +2,104 @@ import torch
 import pathlib
 import argparse
 
+from default import cfg, merge_from_file
 from utils.logger import get_time
+from utils.logger import save_config
 from models.mlp import MLP
 from models.tenet import TENet, ReTENet
 from datasets.tep_dataset import TEPDataset
-from torch.utils.data.dataloader import DataLoader
-from training_pipeline import train, train_with_learned_loss
-from testing_pipeline import test, test_with_learned_loss, adaptive_test
+# from torch.utils.data.dataloader import DataLoader
+from training_pipeline import *
+from testing_pipeline import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=2023)
-    parser.add_argument('--data-dir', type=str, default=r'./data/TEP')
-    parser.add_argument('--split-ratio', type=tuple, default=(0.7, 0.3))
-    parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--device', type=str, default='cuda')
-    parser.add_argument('--cuda-id', type=int, default=0)
-    parser.add_argument('--epochs', type=int, default=50)
-    parser.add_argument('--inner-epochs', type=int, default=1, help='num of inner loop iterations')
-    parser.add_argument('--num-classes', type=int, default=10)
-    parser.add_argument('--step-size', type=int, default=10, help='step size of learning rate scheduler')
-    parser.add_argument('--s', type=str, default='1', help='source domain')
-    parser.add_argument('--t', type=str, default='3', help='target domain')
-    parser.add_argument('--ckpt-suffix', type=str, default=None, help='suffix of saved checkpoint')
-    parser.add_argument('--log-dir', type=str, default=r'./logs', help='save path of logs')
-    parser.add_argument('--output-dir', type=str, default=r'./checkpoints', help='save path of model weights')
-
-    parser.add_argument('--train', action='store_true', help='train or not')
-    parser.add_argument('--train-ll', action='store_true', help='choice of train with learned loss')
-    parser.add_argument('--test-ll', action='store_true', help='choice of test with learned loss')
-    parser.add_argument('--ttba', action='store_true', help='choice of TTBA')
-    parser.add_argument('--adatest', action='store_true', help='choice of adaptive test')
+    parser.add_argument('--cfg', dest='cfg_file', type=str, required=True)
+    parser.add_argument("--opts", default=None, nargs=argparse.REMAINDER,
+                        help="See default.py for all options")
     args = parser.parse_args()
 
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
-    torch.cuda.set_device(args.cuda_id)
+    merge_from_file(args.cfg_file)
+    if cfg.BASIC.LOG_FLAG:
+        save_config(cfg, args.cfg_file)
 
-    if not pathlib.Path(args.data_dir).exists():
-        pathlib.Path(args.data_dir).mkdir()
-    if not pathlib.Path(args.log_dir).exists():
-        pathlib.Path(args.log_dir).mkdir()
-    if not pathlib.Path(args.output_dir).exists():
-        pathlib.Path(args.output_dir).mkdir()
+    torch.manual_seed(cfg.BASIC.RANDOM_SEED)
+    torch.cuda.manual_seed(cfg.BASIC.RANDOM_SEED)
+    torch.cuda.set_device(cfg.BASIC.CUDA_ID)
 
-    model = ReTENet(f1=16, f2=32, depth=8, num_classes=args.num_classes).to(args.device)
+    if not pathlib.Path(cfg.PATH.DATA_PATH).exists():
+        pathlib.Path(cfg.PATH.DATA_PATH).mkdir()
+    if not pathlib.Path(cfg.PATH.LOG_PATH).exists():
+        pathlib.Path(cfg.PATH.LOG_PATH).mkdir()
+    if not pathlib.Path(cfg.PATH.CKPT_PATH).exists():
+        pathlib.Path(cfg.PATH.CKPT_PATH).mkdir()
 
-    ll_model = MLP(in_features=args.num_classes, hidden_dim=32, out_features=1, norm_reduce=True).to(args.device)
+    if cfg.MODEL.NAME == 'ReTENet':
+        model = ReTENet(f1=16, f2=32, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+    else:
+        model = TENet(f1=16, f2=32, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+
+    if cfg.TRAINING.PIPELINE == 'arm_ll':
+        ll_model = MLP(in_features=cfg.MODEL.NUM_CLASSES, hidden_dim=32,
+                       out_features=1, norm_reduce=True).to(cfg.BASIC.DEVICE)
+    else:
+        ll_model = None
 
     criterion = torch.nn.CrossEntropyLoss()
 
-    args.log_dir = str(pathlib.Path(args.log_dir).joinpath(f'{get_time()}'))
+    cfg.PATH.LOG_PATH = str(pathlib.Path(cfg.PATH.LOG_PATH).joinpath(f'{get_time()}'))
 
-    args.split_ratio = {'train': args.split_ratio[0],
-                        'eval': args.split_ratio[1]}
+    split_ratio = {'train': cfg.BASIC.SPLIT_RATIO[0],
+                   'eval': cfg.BASIC.SPLIT_RATIO[1]}
 
-    check = False
     datasets, dataloaders = {}, {}
-    if 1 <= int(args.s) <= 6 and 1 <= int(args.t) <= 6:
-        check = True
-        data_domains = {'source': int(args.s), 'target': int(args.t)}
-        datasets.setdefault('train', TEPDataset(args.data_dir, args.split_ratio, data_domains,
-                                                'train', seed=args.seed))
-        datasets.setdefault('val', TEPDataset(args.data_dir, args.split_ratio, data_domains,
-                                              'eval', seed=args.seed))
-        datasets.setdefault('test', TEPDataset(args.data_dir, args.split_ratio, data_domains,
-                                               'test', seed=args.seed))
+    data_domains = {'source': int(cfg.BASIC.SOURCE), 'target': int(cfg.BASIC.TARGET)}
+    datasets.setdefault('train', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
+                                            'train', seed=cfg.BASIC.RANDOM_SEED))
+    datasets.setdefault('val', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
+                                          'eval', seed=cfg.BASIC.RANDOM_SEED))
+    datasets.setdefault('test', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
+                                           'test', seed=cfg.BASIC.RANDOM_SEED))
 
-        dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=args.batch_size, shuffle=True))
-        dataloaders.setdefault('val', DataLoader(datasets['val'], batch_size=args.batch_size, shuffle=True))
-        dataloaders.setdefault('test', DataLoader(datasets['test'], shuffle=False))
+    dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))
+    dataloaders.setdefault('val', DataLoader(datasets['val'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))
+    dataloaders.setdefault('test', DataLoader(datasets['test'], batch_size=cfg.TESTING.BATCH_SIZE, shuffle=False))
 
-    if check and args.train:
-        train(train_iter=dataloaders['train'],
-              eval_iter=dataloaders['val'],
-              model=model,
-              criterion=criterion,
-              args=args)
+    if cfg.TRAINING.PIPELINE == 'default':
+        train_default(train_iter=dataloaders['train'],
+                      eval_iter=dataloaders['val'],
+                      model=model,
+                      criterion=criterion,
+                      args=cfg)
 
-    if args.train_ll:
-        domains = [int(domain) for domain in args.s]
+    if cfg.TRAINING.PIPELINE == 'arm_ll':
+        domains = [int(domain) for domain in cfg.BASIC.SOURCE]
         train_with_learned_loss(domains=domains,
                                 model=model,
                                 ll_model=ll_model,
                                 criterion=criterion,
-                                args=args)
+                                args=cfg)
 
-    if args.test_ll:
-        test_with_learned_loss(test_iter=dataloaders['test'],
-                               model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.ckpt_suffix}.pth'),
-                               ll_model_path=pathlib.Path(args.output_dir).joinpath(f'learned_loss.pth'),
-                               args=args)
+    model_name = f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth' if cfg.MODEL.CKPT_SUFFIX != '' else 'best_model.pth'
 
-    if args.adatest:
-        adaptive_test(test_dataset=datasets['test'],
-                      model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.ckpt_suffix}.pth'),
-                      criterion=criterion,
-                      epochs=5,
-                      args=args)
+    for testing_pipeline in cfg.TESTING.PIPELINE:
+        if testing_pipeline == 'default':
+            test_default(test_iter=dataloaders['test'],
+                         model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                         args=cfg)
 
-    test(test_iter=dataloaders['test'],
-         model_path=pathlib.Path(args.output_dir).joinpath(f'best_model_{args.ckpt_suffix}.pth'),
-         args=args)
+        if testing_pipeline == 'norm':
+            test_with_adaptive_norm(test_iter=dataloaders['test'],
+                                    model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                                    args=cfg)
+
+        if testing_pipeline == 'tent':
+            test_with_tent(test_iter=dataloaders['test'],
+                           model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                           args=cfg)
+
+        if testing_pipeline == 'arm_ll':
+            test_with_learned_loss(test_iter=dataloaders['test'],
+                                   model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                                   ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(f'learned_loss.pth'),
+                                   args=cfg)
