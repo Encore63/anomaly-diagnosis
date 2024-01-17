@@ -12,11 +12,11 @@ class TENet(nn.Module):
     """
     Modified from EEGNet
     """
-    def __init__(self, f1: int, f2: int, depth: int, num_classes: int):
+    def __init__(self,num_classes: int):
         super(TENet, self).__init__()
-        self.F1 = f1
-        self.F2 = f2
-        self.D = depth
+        self.F1 = 32
+        self.F2 = 128
+        self.D = 8
         self.ext_block_1 = nn.Sequential(
             OrderedDict([
                 ('conv_1', nn.Conv2d(in_channels=1, out_channels=self.F1,
@@ -37,21 +37,19 @@ class TENet(nn.Module):
                 ('conv_3', nn.Conv2d(in_channels=self.D * self.F1, out_channels=self.F2, kernel_size=1)),
                 ('bn_3', nn.BatchNorm2d(num_features=self.F2)),
                 ('elu_2', nn.ELU()),
-                ('avg_pool_2', nn.AvgPool2d(kernel_size=(1, 2), stride=1)),
+                ('avg_pool_2', nn.AdaptiveAvgPool2d(output_size=(5, 5))),
                 # ('dropout_2', nn.Dropout(p=0.5))
             ])
         )
         self.class_classifier = nn.Sequential(
             OrderedDict([
-                ('fc_1', nn.Linear(in_features=3840, out_features=1920)),
+                ('fc_1', nn.Linear(in_features=3200, out_features=1600)),
                 ('elu_3', nn.ELU()),
-                ('fc_2', nn.Linear(in_features=1920, out_features=960)),
+                ('fc_2', nn.Linear(in_features=1600, out_features=800)),
                 ('elu_4', nn.ELU()),
-                ('fc_3', nn.Linear(in_features=960, out_features=num_classes))
+                ('fc_3', nn.Linear(in_features=800, out_features=num_classes))
             ])
         )
-        self.self_supervised_branch = SelfSupervisedModule()
-        self.adversarial_branch = AdversarialModule(in_features=3840, hidden_dims=[1920, 960, num_classes])
 
     def forward(self, x):
         features = self.ext_block_1(x)
@@ -65,11 +63,11 @@ class ReTENet(nn.Module):
     """
     Modified from TENet
     """
-    def __init__(self, f1: int, f2: int, depth: int, num_classes: int):
+    def __init__(self, num_classes: int):
         super(ReTENet, self).__init__()
-        self.F1 = f1
-        self.F2 = f2
-        self.D = depth
+        self.F1 = 32
+        self.F2 = 128
+        self.D = 8
         self.ext_block_1 = nn.Sequential(
             OrderedDict([
                 ('conv_1', nn.Conv2d(in_channels=1, out_channels=self.F1,
@@ -90,22 +88,19 @@ class ReTENet(nn.Module):
                 ('conv_3', nn.Conv2d(in_channels=self.D * self.F1, out_channels=self.F2, kernel_size=1)),
                 ('bn_3', nn.BatchNorm2d(num_features=self.F2)),
                 ('relu_2', nn.ReLU()),
-                ('avg_pool_2', nn.AdaptiveAvgPool2d(output_size=(1, 1))),
+                ('avg_pool_2', nn.AdaptiveAvgPool2d(output_size=(5, 5))),
                 ('dropout_2', nn.Dropout(p=0.5))
             ])
         )
         self.class_classifier = nn.Sequential(
             OrderedDict([
-                ('fc_1', nn.Linear(in_features=256, out_features=128)),
+                ('fc_1', nn.Linear(in_features=3200, out_features=1600)),
                 ('relu_3', nn.ReLU()),
-                ('fc_2', nn.Linear(in_features=128, out_features=64)),
+                ('fc_2', nn.Linear(in_features=1600, out_features=800)),
                 ('relu_4', nn.ReLU()),
-                ('fc_3', nn.Linear(in_features=64, out_features=num_classes))
+                ('fc_3', nn.Linear(in_features=800, out_features=num_classes))
             ])
         )
-        self.self_supervised_branch = SelfSupervisedModule()
-        self.adversarial_branch = AdversarialModule(in_features=256, hidden_dims=[256, 128, num_classes])
-        self.attention_block = AttentionModule(embed_dim=256, num_heads=4)
 
     def forward(self, x):
         features = self.ext_block_1(x)
@@ -117,6 +112,6 @@ class ReTENet(nn.Module):
 
 if __name__ == '__main__':
     data = torch.randn((1, 1, 50, 50))
-    model = ReTENet(f1=16, f2=256, depth=8, num_classes=10)
+    model = ReTENet(num_classes=10)
     out = model(data)
     summary(model, input_data=data)

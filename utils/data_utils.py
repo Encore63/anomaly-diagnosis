@@ -8,6 +8,10 @@ from typing import Dict
 from sklearn.preprocessing import StandardScaler
 
 
+def digit_extract(file_name) -> int:
+    return int(''.join(filter(str.isdigit, file_name)))
+
+
 def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=None, num_classes=10) -> np.ndarray:
     """
     数据预处理及标准化
@@ -28,7 +32,8 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=Non
     count, idx_class = 0, 0
     class_ignore = set(neglect) if neglect is not None else set()
     for root, dirs, files in os.walk(src_path):
-        for file in files:
+        sorted_files = sorted(files, key=digit_extract)
+        for file in sorted_files:
             if file.split('.')[0][-2:] == '00':
                 continue
             if idx_class in class_ignore:

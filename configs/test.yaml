@@ -1,15 +1,16 @@
 BASIC:
   LOG_FLAG: False
+DATA:
   SOURCE: 1
-  TARGET: 2
-  CUDA_ID: 1
-  SPLIT_RATIO: [0.7, 0.2]
+  TARGET: 1
+  SPLIT_RATIO: [ 0.7, 0.2 ]
+  TIME_WINDOW: 10
 MODEL:
   CKPT_SUFFIX: ''
 TRAINING:
   PIPELINE: ''
 TESTING:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 6000
   PIPELINE:
     - 'default'
     - 'norm'

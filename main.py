@@ -6,8 +6,9 @@ from default import cfg, merge_from_file
 from utils.logger import get_time
 from utils.logger import save_log
 from models.mlp import MLP
-from models.tenet import TENet, ReTENet
+from models.bilstm import BiLSTM
 from models.resnet import resnet18
+from models.tenet import TENet, ReTENet
 from datasets.tep_dataset import TEPDataset
 # from torch.utils.data.dataloader import DataLoader
 from training_pipeline import *
@@ -36,9 +37,9 @@ if __name__ == '__main__':
         pathlib.Path(cfg.PATH.CKPT_PATH).mkdir()
 
     if cfg.MODEL.NAME == 'ReTENet':
-        model = ReTENet(f1=16, f2=256, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
-    elif cfg.MODEL.NAME == 'TENet':
-        model = TENet(f1=16, f2=256, depth=8, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+        model = ReTENet(num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+    elif cfg.MODEL.NAME == 'BiLSTM':
+        model = BiLSTM(out_channel=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     else:
         model = resnet18().to(cfg.BASIC.DEVICE)
 
@@ -52,11 +53,11 @@ if __name__ == '__main__':
 
     cfg.PATH.LOG_PATH = str(pathlib.Path(cfg.PATH.LOG_PATH).joinpath(f'{get_time()}'))
 
-    split_ratio = {'train': cfg.BASIC.SPLIT_RATIO[0],
-                   'eval': cfg.BASIC.SPLIT_RATIO[1]}
+    split_ratio = {'train': cfg.DATA.SPLIT_RATIO[0],
+                   'eval': cfg.DATA.SPLIT_RATIO[1]}
 
     datasets, dataloaders = {}, {}
-    data_domains = {'source': int(cfg.BASIC.SOURCE), 'target': int(cfg.BASIC.TARGET)}
+    data_domains = {'source': int(cfg.DATA.SOURCE), 'target': int(cfg.DATA.TARGET)}
     datasets.setdefault('train', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
                                             'train', seed=cfg.BASIC.RANDOM_SEED,
                                             time_win=cfg.DATA.TIME_WINDOW))
@@ -79,7 +80,7 @@ if __name__ == '__main__':
                       args=cfg)
 
     if cfg.TRAINING.PIPELINE == 'arm_ll':
-        domains = [int(domain) for domain in cfg.BASIC.SOURCE]
+        domains = [int(domain) for domain in cfg.DATA.SOURCE]
         train_with_learned_loss(domains=domains,
                                 model=model,
                                 ll_model=ll_model,

@@ -52,7 +52,7 @@ if __name__ == '__main__':
     dataset = TEPDataset(src_path=r'../data/TEP',
                          split_ratio={'train': 0.7, 'eval': 0.3},
                          data_domains={'source': 1, 'target': 3},
-                         dataset_mode='eval',
+                         dataset_mode='test',
                          transform=None)
     data_iter = DataLoader(dataset, batch_size=32, shuffle=True)
     for _, (data, label) in enumerate(data_iter):
