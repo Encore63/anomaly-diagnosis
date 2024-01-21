@@ -2,10 +2,11 @@ import itertools
 import numpy as np
 import seaborn as sns
 
+from typing import Union, List
 from matplotlib import pyplot as plt
 
 
-def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues) -> None:
     """
     this function prints and plots the confusion matrix.
     Normalization can be applied by setting 'normalize=True'.
@@ -48,3 +49,11 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.show()
+
+
+def plot_test_result(data: List[float], labels: List[str]) -> None:
+    sns.barplot(x)
+
+
+if __name__ == '__main__':
+    sns.barplot()

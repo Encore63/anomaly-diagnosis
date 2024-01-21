@@ -53,7 +53,7 @@ if __name__ == '__main__':
                          split_ratio={'train': 0.7, 'eval': 0.3},
                          data_domains={'source': 1, 'target': 3},
                          dataset_mode='test',
-                         transform=None)
+                         transform=None,
+                         time_win=100)
     data_iter = DataLoader(dataset, batch_size=32, shuffle=True)
-    for _, (data, label) in enumerate(data_iter):
-        print(data.shape)
+    print(len(data_iter) * data_iter.batch_size)

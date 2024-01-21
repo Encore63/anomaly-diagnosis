@@ -3,9 +3,6 @@ import torch
 from torch import nn
 from torchinfo import summary
 from collections import OrderedDict
-from models.attention_module import AttentionModule
-from models.adversarial_module import AdversarialModule
-from models.self_supervised_module import SelfSupervisedModule
 
 
 class TENet(nn.Module):

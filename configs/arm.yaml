@@ -1,7 +1,19 @@
+BASIC:
+  LOG_FLAG: True
+DATA:
+  SOURCES:
+    - 1
+  TARGET: 6
+  TIME_WINDOW: 30
+  SPLIT_RATIO: [ 0.7, 0.2 ]
 TRAINING:
-  PIPELINE: 'arm_ll'
+  EPOCHS: 100
+  PIPELINE: 'arm'
 TESTING:
+  BATCH_SIZE: 128
   PIPELINE:
-    - 'arm_ll'
+    - 'arm'
 MODEL:
+  NAME: 'ResNet'
+  ARM: 'ARM_LL'
   CKPT_SUFFIX: 'arm_ll'

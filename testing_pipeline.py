@@ -2,9 +2,9 @@ import torch
 import higher
 import logging
 
+from torch import nn
 from tqdm import tqdm
-from torch.optim import Adam
-from algorithm import tent, norm
+from algorithms import tent, norm, arm
 from utils.average_meter import AverageMeter
 
 
@@ -53,35 +53,24 @@ def test_with_tent(test_iter, model_path, args):
     print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
 
 
-def test_with_learned_loss(test_iter, model_path, ll_model_path, args):
-    model = torch.load(model_path).to(args.BASIC.DEVICE)
-    ll_model = torch.load(ll_model_path).to(args.BASIC.DEVICE)
-    params = list(model.parameters()) + list(ll_model.parameters())
-    optimizer = Adam(params, lr=args.OPTIM.LEARNING_RATE)
-    inner_optimizer = Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
+def test_with_arm(test_iter, model_path, args):
+    criterion = nn.CrossEntropyLoss()
+    algorithm = torch.load(model_path).to(args.BASIC.DEVICE)
     test_loop = tqdm(enumerate(test_iter), total=len(test_iter))
 
     count = 0
-    model.train_default()
+    loss_meter = AverageMeter('MetaLossMeter')
     for _, (data, label) in test_loop:
         if torch.cuda.is_available():
             data, label = data.cuda(), label.cuda()
-        # Meta learning
-        with higher.innerloop_ctx(model, inner_optimizer, args.BASIC.DEVICE,
-                                  copy_initial_weights=False) as (f_net, diff_opt):
-            # Inner loop
-            meta_loss_meter = AverageMeter('MetaLossMeter')
-            for _ in range(args.inner_epochs):
-                spt_logits = f_net(data)
-                spt_loss = ll_model(spt_logits)
-                diff_opt.step(spt_loss)
 
-                meta_loss_meter.update(spt_loss.item(), args.batch_size)
+        logits = algorithm.predict(data)
+        with torch.no_grad():
+            loss = criterion(logits, label)
+            loss_meter.update(loss, args.TESTING.BATCH_SIZE)
+            count += torch.eq(torch.argmax(logits, 1), label).sum().item() / logits.shape[0]
 
-            logits = f_net(data)
-            count += torch.eq(torch.argmax(logits, 1), label).float().mean() / logits.shape[0]
-
-        test_loop.set_description('Adaptive Test')
-        test_loop.set_postfix(loss=f'{meta_loss_meter.avg:.4f}')
+        test_loop.set_description('ARM Test')
+        test_loop.set_postfix(loss=f'{loss_meter.avg:.4f}')
     accuracy = count / len(test_iter)
     print('(ARM) Test Accuracy: {:.4f}%'.format(accuracy * 100))

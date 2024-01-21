@@ -75,13 +75,13 @@ class BottleNeck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, num_block, num_classes=10):
+    def __init__(self, in_channels, block, num_block, num_classes=10):
         super().__init__()
 
         self.in_channels = 64
 
         self.conv1 = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_channels, 64, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
         # we use a different inputsize than the original paper
@@ -131,38 +131,38 @@ class ResNet(nn.Module):
         return output
 
 
-def resnet18():
+def resnet18(in_channels):
     """ return a ResNet 18 object
     """
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    return ResNet(in_channels, BasicBlock, [2, 2, 2, 2])
 
 
-def resnet34():
+def resnet34(in_channels):
     """ return a ResNet 34 object
     """
-    return ResNet(BasicBlock, [3, 4, 6, 3])
+    return ResNet(in_channels, BasicBlock, [3, 4, 6, 3])
 
 
-def resnet50():
+def resnet50(in_channels):
     """ return a ResNet 50 object
     """
-    return ResNet(BottleNeck, [3, 4, 6, 3])
+    return ResNet(in_channels, BottleNeck, [3, 4, 6, 3])
 
 
-def resnet101():
+def resnet101(in_channels):
     """ return a ResNet 101 object
     """
-    return ResNet(BottleNeck, [3, 4, 23, 3])
+    return ResNet(in_channels, BottleNeck, [3, 4, 23, 3])
 
 
-def resnet152():
+def resnet152(in_channels):
     """ return a ResNet 152 object
     """
-    return ResNet(BottleNeck, [3, 8, 36, 3])
+    return ResNet(in_channels, BottleNeck, [3, 8, 36, 3])
 
 
 if __name__ == '__main__':
-    model = resnet18()
+    model = resnet18(in_channels=1)
     data = torch.randn((1, 1, 10, 50))
     logits = model(data)
     summary(model, input_data=data)

@@ -1,16 +1,12 @@
-import torch
 import pathlib
 import argparse
 
 from default import cfg, merge_from_file
 from utils.logger import get_time
 from utils.logger import save_log
-from models.mlp import MLP
 from models.bilstm import BiLSTM
 from models.resnet import resnet18
 from models.tenet import TENet, ReTENet
-from datasets.tep_dataset import TEPDataset
-# from torch.utils.data.dataloader import DataLoader
 from training_pipeline import *
 from testing_pipeline import *
 
@@ -41,13 +37,7 @@ if __name__ == '__main__':
     elif cfg.MODEL.NAME == 'BiLSTM':
         model = BiLSTM(out_channel=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     else:
-        model = resnet18().to(cfg.BASIC.DEVICE)
-
-    if cfg.TRAINING.PIPELINE == 'arm_ll':
-        ll_model = MLP(in_features=cfg.MODEL.NUM_CLASSES, hidden_dim=32,
-                       out_features=1, norm_reduce=True).to(cfg.BASIC.DEVICE)
-    else:
-        ll_model = None
+        model = resnet18(in_channels=1).to(cfg.BASIC.DEVICE)
 
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -79,13 +69,12 @@ if __name__ == '__main__':
                       criterion=criterion,
                       args=cfg)
 
-    if cfg.TRAINING.PIPELINE == 'arm_ll':
-        domains = [int(domain) for domain in cfg.DATA.SOURCE]
-        train_with_learned_loss(domains=domains,
-                                model=model,
-                                ll_model=ll_model,
-                                criterion=criterion,
-                                args=cfg)
+    if cfg.TRAINING.PIPELINE == 'arm':
+        domains = [int(domain) for domain in cfg.DATA.SOURCES]
+        train_with_arm(domains=domains,
+                       model=model,
+                       criterion=criterion,
+                       args=cfg)
 
     model_name = f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth' if cfg.MODEL.CKPT_SUFFIX != '' else 'best_model.pth'
 
@@ -105,8 +94,7 @@ if __name__ == '__main__':
                            model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
                            args=cfg)
 
-        if testing_pipeline == 'arm_ll':
-            test_with_learned_loss(test_iter=dataloaders['test'],
-                                   model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
-                                   ll_model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(f'learned_loss.pth'),
-                                   args=cfg)
+        if testing_pipeline == 'arm':
+            test_with_arm(test_iter=dataloaders['test'],
+                          model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                          args=cfg)
