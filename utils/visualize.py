@@ -52,7 +52,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
 
 
 def plot_test_result(data: List[float], labels: List[str]) -> None:
-    sns.barplot(x)
+    ...
 
 
 if __name__ == '__main__':
