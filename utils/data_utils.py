@@ -82,7 +82,10 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kw
     datasets.setdefault('source_train', train_data)
     datasets.setdefault('source_eval', eval_data)
     if domains['target'] != domains['source'] and domains['target'] is not None:
-        datasets.setdefault('target_test', data_concat(src_path, domains['target'], **kwargs))
+        test_data = data_concat(src_path, domains['target'], **kwargs)
+        np.random.seed(random_seed)
+        np.random.shuffle(test_data)
+        datasets.setdefault('target_test', test_data)
     else:
         datasets.setdefault('target_test', data[train_size + eval_size:, :, :])
     return datasets
@@ -92,7 +95,6 @@ class DataTransform(object):
     """
     Tools for data transformation or augmentation
     """
-
     def __init__(self, data: np.ndarray):
         self.data = data
 

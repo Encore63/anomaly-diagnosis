@@ -1,16 +1,18 @@
 BASIC:
-  LOG_FLAG: True
+  LOG_FLAG: False
 DATA:
   SOURCES:
     - 1
+    - 2
+    - 3
   TARGET: 6
-  TIME_WINDOW: 30
+  TIME_WINDOW: 10
   SPLIT_RATIO: [ 0.7, 0.2 ]
 TRAINING:
   EPOCHS: 100
-  PIPELINE: 'arm'
+  PIPELINE: ''
 TESTING:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 256
   PIPELINE:
     - 'arm'
 MODEL:

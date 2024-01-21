@@ -1,5 +1,6 @@
 import torch
 import logging
+import itertools
 
 from tqdm import tqdm
 from torch.optim import Adam
@@ -97,49 +98,53 @@ def train_with_arm(domains, model, criterion, args):
 
     train_iters, eval_iters = [], []
     for domain in domains:
-        dataset = TEPDataset(args.PATH.DATA_PATH, split_ratio, {'source': domain, 'target': None},
+        dataset = TEPDataset(args.PATH.DATA_PATH, split_ratio,
+                             {'source': domain, 'target': args.DATA.TARGET},
                              'train', seed=args.BASIC.RANDOM_SEED)
         train_iters.append(DataLoader(dataset, batch_size=args.TRAINING.BATCH_SIZE, shuffle=True))
-        dataset = TEPDataset(args.PATH.DATA_PATH, split_ratio, {'source': domain, 'target': None},
+        dataset = TEPDataset(args.PATH.DATA_PATH, split_ratio,
+                             {'source': domain, 'target': args.DATA.TARGET},
                              'eval', seed=args.BASIC.RANDOM_SEED)
         eval_iters.append(DataLoader(dataset, batch_size=args.TRAINING.BATCH_SIZE, shuffle=True))
 
+    train_iter = list(itertools.chain(*train_iters))
+    eval_iter = list(itertools.chain(*eval_iters))
+
     for epoch in range(args.TRAINING.EPOCHS):
-        for train_iter, eval_iter in zip(train_iters, eval_iters):
-            train_loop = tqdm(enumerate(train_iter), total=len(train_iter))
-            train_loss_meter = AverageMeter('TrainLossMeter')
-            train_acc_meter = AverageMeter('TrainAccMeter')
-            for _, (data, labels) in train_loop:
-                if torch.cuda.is_available():
-                    data, labels = data.cuda(), labels.cuda()
-                train_logits, _ = algorithm.learn(data, labels)
-                train_loss = criterion(train_logits, labels)
-                train_accuracy = torch.eq(torch.argmax(train_logits, 1), labels).float().mean()
+        train_loop = tqdm(enumerate(train_iter), total=len(train_iter))
+        train_loss_meter = AverageMeter('TrainLossMeter')
+        train_acc_meter = AverageMeter('TrainAccMeter')
+        for _, (data, labels) in train_loop:
+            if torch.cuda.is_available():
+                data, labels = data.cuda(), labels.cuda()
+            train_logits, _ = algorithm.learn(data, labels)
+            train_loss = criterion(train_logits, labels)
+            train_accuracy = torch.eq(torch.argmax(train_logits, 1), labels).float().mean()
 
-                train_loss_meter.update(train_loss, args.TRAINING.BATCH_SIZE)
-                train_acc_meter.update(train_accuracy, args.TRAINING.BATCH_SIZE)
-                train_loop.set_description(f'Train [{epoch}/{args.TRAINING.EPOCHS}]')
-                train_loop.set_postfix(loss=f'{train_loss_meter.avg:.4f}',
-                                       acc=f'{train_acc_meter.avg:.4f}')
+            train_loss_meter.update(train_loss, args.TRAINING.BATCH_SIZE)
+            train_acc_meter.update(train_accuracy, args.TRAINING.BATCH_SIZE)
+            train_loop.set_description(f'Train [{epoch}/{args.TRAINING.EPOCHS}]')
+            train_loop.set_postfix(loss=f'{train_loss_meter.avg:.4f}',
+                                   acc=f'{train_acc_meter.avg:.4f}')
 
-            eval_loss_meter = AverageMeter('EvalLossMeter')
-            eval_acc_meter = AverageMeter('EvalAccMeter')
-            eval_loop = tqdm(enumerate(eval_iter), total=len(eval_iter))
-            for _, (data, labels) in eval_loop:
-                if torch.cuda.is_available():
-                    data, labels = data.cuda(), labels.cuda()
-                eval_logits = algorithm.predict(data)
-                eval_loss = criterion(eval_logits, labels)
-                eval_accuracy = torch.eq(torch.argmax(eval_logits, 1), labels).float().mean()
-                eval_acc_meter.update(eval_accuracy, args.TRAINING.BATCH_SIZE)
-                eval_loss_meter.update(eval_loss.item(), args.TRAINING.BATCH_SIZE)
+        eval_loss_meter = AverageMeter('EvalLossMeter')
+        eval_acc_meter = AverageMeter('EvalAccMeter')
+        eval_loop = tqdm(enumerate(eval_iter), total=len(eval_iter))
+        for _, (data, labels) in eval_loop:
+            if torch.cuda.is_available():
+                data, labels = data.cuda(), labels.cuda()
+            eval_logits = algorithm.predict(data)
+            eval_loss = criterion(eval_logits, labels)
+            eval_accuracy = torch.eq(torch.argmax(eval_logits, 1), labels).float().mean()
+            eval_acc_meter.update(eval_accuracy, args.TRAINING.BATCH_SIZE)
+            eval_loss_meter.update(eval_loss.item(), args.TRAINING.BATCH_SIZE)
 
-                eval_loop.set_description(f'Eval [{epoch}/{args.TRAINING.EPOCHS}]')
-                eval_loop.set_postfix(loss=f'{eval_loss_meter.avg:.4f}',
-                                      acc=f'{eval_acc_meter.avg:.4f}')
-            if args.BASIC.LOG_FLAG:
-                log_tool.info(f'[EPOCH {epoch + 1: <2d}/{args.TRAINING.EPOCHS}] ACC: {eval_acc_meter.avg * 100:.4f}%')
-            stopping_tool(eval_loss_meter.avg, algorithm)
+            eval_loop.set_description(f'Eval [{epoch}/{args.TRAINING.EPOCHS}]')
+            eval_loop.set_postfix(loss=f'{eval_loss_meter.avg:.4f}',
+                                  acc=f'{eval_acc_meter.avg:.4f}')
+        if args.BASIC.LOG_FLAG:
+            log_tool.info(f'[EPOCH {epoch + 1: <2d}/{args.TRAINING.EPOCHS}] ACC: {eval_acc_meter.avg * 100:.4f}%')
+        stopping_tool(eval_loss_meter.avg, algorithm)
 
         if stopping_tool.early_stop:
             print('Early Stopping ...')

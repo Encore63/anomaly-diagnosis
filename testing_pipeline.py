@@ -31,7 +31,7 @@ def test_with_adaptive_norm(test_iter, model_path, args):
             if torch.cuda.is_available():
                 data, label = data.cuda(), label.cuda()
             output = model(data)
-            count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
+            count += torch.eq(torch.argmax(output, 1), label).float().mean()
         accuracy = count / len(test_iter)
     print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Norm)', accuracy * 100))
 
@@ -48,7 +48,7 @@ def test_with_tent(test_iter, model_path, args):
             if torch.cuda.is_available():
                 data, label = data.cuda(), label.cuda()
             output = model(data)
-            count += torch.eq(torch.argmax(output, 1), label).sum().item() / output.shape[0]
+            count += torch.eq(torch.argmax(output, 1), label).float().mean()
         accuracy = count / len(test_iter)
     print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
 
@@ -59,6 +59,7 @@ def test_with_arm(test_iter, model_path, args):
     test_loop = tqdm(enumerate(test_iter), total=len(test_iter))
 
     count = 0
+    algorithm.eval()
     loss_meter = AverageMeter('MetaLossMeter')
     for _, (data, label) in test_loop:
         if torch.cuda.is_available():
@@ -68,7 +69,7 @@ def test_with_arm(test_iter, model_path, args):
         with torch.no_grad():
             loss = criterion(logits, label)
             loss_meter.update(loss, args.TESTING.BATCH_SIZE)
-            count += torch.eq(torch.argmax(logits, 1), label).sum().item() / logits.shape[0]
+            count += torch.eq(torch.argmax(logits, 1), label).float().mean()
 
         test_loop.set_description('ARM Test')
         test_loop.set_postfix(loss=f'{loss_meter.avg:.4f}')
