@@ -131,39 +131,17 @@ class ResNet(nn.Module):
         return output
 
 
-def resnet18(in_channels):
-    """ return a ResNet 18 object
+def resnet18(in_channels, num_classes):
     """
-    return ResNet(in_channels, BasicBlock, [2, 2, 2, 2])
-
-
-def resnet34(in_channels):
-    """ return a ResNet 34 object
+    return a ResNet 18 object
     """
-    return ResNet(in_channels, BasicBlock, [3, 4, 6, 3])
-
-
-def resnet50(in_channels):
-    """ return a ResNet 50 object
-    """
-    return ResNet(in_channels, BottleNeck, [3, 4, 6, 3])
-
-
-def resnet101(in_channels):
-    """ return a ResNet 101 object
-    """
-    return ResNet(in_channels, BottleNeck, [3, 4, 23, 3])
-
-
-def resnet152(in_channels):
-    """ return a ResNet 152 object
-    """
-    return ResNet(in_channels, BottleNeck, [3, 8, 36, 3])
+    return ResNet(in_channels=in_channels, num_classes=num_classes,
+                  block=BasicBlock, num_block=[2, 2, 2, 2])
 
 
 if __name__ == '__main__':
-    model = resnet18(in_channels=1)
+    model = resnet18(in_channels=1, num_classes=256)
     data = torch.randn((1, 1, 10, 50))
-    logits = model(data)
+    logit = model(data)
     summary(model, input_data=data)
-    print(logits.shape)
+    print(logit.shape)
