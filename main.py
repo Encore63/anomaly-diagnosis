@@ -7,6 +7,8 @@ from utils.logger import save_log
 from models.bilstm import BiLSTM
 from models.resnet import resnet18
 from models.tenet import TENet, ReTENet
+from models.dagcn import DAGCN
+from models.cnn import CNN
 from training_pipeline import *
 from testing_pipeline import *
 
@@ -36,8 +38,12 @@ if __name__ == '__main__':
         model = ReTENet(num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     elif cfg.MODEL.NAME == 'BiLSTM':
         model = BiLSTM(out_channel=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+    elif cfg.MODEL.NAME == 'DAGCN':
+        model = DAGCN(num_classes=10).to(cfg.BASIC.DEVICE)
+    elif cfg.MODEL.NAME == 'CNN':
+        model = CNN(in_channels=50).to(cfg.BASIC.DEVICE)
     else:
-        model = resnet18(in_channels=1).to(cfg.BASIC.DEVICE)
+        model = resnet18(in_channels=1, num_classes=10).to(cfg.BASIC.DEVICE)
 
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -50,13 +56,19 @@ if __name__ == '__main__':
     data_domains = {'source': int(cfg.DATA.SOURCE), 'target': int(cfg.DATA.TARGET)}
     datasets.setdefault('train', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
                                             'train', seed=cfg.BASIC.RANDOM_SEED,
-                                            time_win=cfg.DATA.TIME_WINDOW))
+                                            data_dim=cfg.DATA.DIM,
+                                            time_win=cfg.DATA.TIME_WINDOW,
+                                            overlap=cfg.DATA.OVERLAP))
     datasets.setdefault('val', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
                                           'eval', seed=cfg.BASIC.RANDOM_SEED,
-                                          time_win=cfg.DATA.TIME_WINDOW))
+                                          data_dim=cfg.DATA.DIM,
+                                          time_win=cfg.DATA.TIME_WINDOW,
+                                          overlap=cfg.DATA.OVERLAP))
     datasets.setdefault('test', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
                                            'test', seed=cfg.BASIC.RANDOM_SEED,
-                                           time_win=cfg.DATA.TIME_WINDOW))
+                                           data_dim=cfg.DATA.DIM,
+                                           time_win=cfg.DATA.TIME_WINDOW,
+                                           overlap=cfg.DATA.OVERLAP))
 
     dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))
     dataloaders.setdefault('val', DataLoader(datasets['val'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))

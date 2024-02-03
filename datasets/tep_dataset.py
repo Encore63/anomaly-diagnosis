@@ -11,9 +11,9 @@ from torch.utils.data.dataloader import DataLoader
 class TEPDataset(Dataset):
     def __init__(self, src_path: str, split_ratio: Dict, data_domains: Dict,
                  dataset_mode: str, seed: int = None, data_dim: int = 4, neglect: list = None,
-                 time_win: int = 10, num_classes: int = 10, transform=None):
+                 time_win: int = 10, num_classes: int = 10, overlap: bool = True, transform=None):
         _data = data_split(src_path, split_ratio, data_domains, random_seed=seed,
-                           neglect=neglect, num_classes=num_classes, time_win=time_win)
+                           neglect=neglect, num_classes=num_classes, time_win=time_win, overlap=overlap)
         self.data = None
         self.labels = None
         if dataset_mode == 'train':
@@ -30,10 +30,13 @@ class TEPDataset(Dataset):
 
         self.data = torch.from_numpy(self.data).to(torch.float32)
         self.labels = torch.from_numpy(self.labels).to(torch.long)
-        offset = data_dim - len(self.data.shape)
-        if offset > 0:
-            for _ in range(offset):
-                self.data = torch.unsqueeze(self.data, dim=1)
+        if time_win != 0:
+            offset = data_dim - len(self.data.shape)
+            if offset > 0:
+                for _ in range(offset):
+                    self.data = torch.unsqueeze(self.data, dim=1)
+        else:
+            self.data = torch.squeeze(self.data, dim=1)
 
         self.length = self.data.shape[0]
         self.transform = transform
@@ -53,7 +56,8 @@ if __name__ == '__main__':
                          split_ratio={'train': 0.7, 'eval': 0.3},
                          data_domains={'source': 1, 'target': 3},
                          dataset_mode='test',
+                         data_dim=3,
                          transform=None,
-                         time_win=0)
-    data_iter = DataLoader(dataset, batch_size=32, shuffle=True)
-    print(len(data_iter) * data_iter.batch_size)
+                         overlap=False)
+    data_iter = DataLoader(dataset, batch_size=128, shuffle=True)
+    print(len(data_iter) * data_iter.batch_size, list(data_iter)[0][0].shape)

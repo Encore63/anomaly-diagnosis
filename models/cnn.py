@@ -1,3 +1,4 @@
+import einops
 import torch
 import warnings
 
@@ -33,7 +34,8 @@ class CNN(nn.Module):
         self.layer5 = nn.Sequential(
             nn.Linear(128 * 4, 256),
             nn.ReLU(inplace=True),
-            nn.Dropout())
+            nn.Dropout()
+        )
 
     def forward(self, x):
         x = self.layer1(x)

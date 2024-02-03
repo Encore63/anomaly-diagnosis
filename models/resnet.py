@@ -5,8 +5,8 @@ from torchinfo import summary
 
 
 class BasicBlock(nn.Module):
-    """Basic Block for resnet 18 and resnet 34
-
+    """
+    Basic Block for resnet 18 and resnet 34
     """
 
     # BasicBlock and BottleNeck block

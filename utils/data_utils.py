@@ -12,15 +12,17 @@ def digit_extract(file_name) -> int:
     return int(''.join(filter(str.isdigit, file_name)))
 
 
-def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=None, num_classes=10) -> np.ndarray:
+def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
+                neglect=None, num_classes=10, overlap=True) -> np.ndarray:
     """
     数据预处理及标准化
     :param src_path: 数据路径
-    :param mode: 数据模式
-    :param neglect: 忽略的类别 (choice 1 2 3 4 5 6)
+    :param mode: 数据模式 (choice 1 2 3 4 5 6)
+    :param neglect: 忽略的类别
     :param num_data: 数据量 (default 600)
     :param time_win: 时间窗口大小 (default 10)
     :param num_classes: 类别数量 (default 10)
+    :param overlap: 数据重叠 (default True)
     :return: 经预处理后的数据
     """
     scaler = StandardScaler()
@@ -28,9 +30,11 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=Non
     normal_data = pd.read_csv(src_path.joinpath('mode{}_d00.csv'.format(mode)))
     normal_data = normal_data.to_numpy()
     scaler.fit(normal_data[1:num_data, :])
-    dataset = np.zeros((1, time_win, 51)) if time_win != 0 else np.zeros((1, 51))
+    dataset = np.zeros((1, time_win, 51)) if overlap else np.zeros((1, 51))
     count, idx_class = 0, 0
     class_ignore = set(neglect) if neglect is not None else set()
+    # if mode == 4:
+    #     class_ignore = {1, 4}
     for root, dirs, files in os.walk(src_path):
         sorted_files = sorted(files, key=digit_extract)
         for file in sorted_files:
@@ -47,7 +51,7 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=Non
                                          fault_data[0:num_data, 50:52]), axis=1)
             label = np.array([[idx_class]] * len(fault_data))
             fault_data = np.concatenate((fault_data, label), axis=1)
-            if time_win != 0:
+            if overlap:
                 data_temp = np.zeros(((len(fault_data) - time_win + 1), time_win, fault_data.shape[1]))
                 for _i in range((len(fault_data) - time_win + 1)):
                     for _j in range(time_win):
@@ -59,11 +63,12 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=Non
             idx_class += 1
             if count >= num_classes:
                 break
-    if time_win != 0:
+    if overlap:
         dataset = dataset[1:dataset.shape[0], :, :]
     else:
+        assert time_win != 0, 'Invalid size of time window.'
         dataset = dataset[1:dataset.shape[0], :]
-        dataset = dataset.reshape((dataset.shape[0], 1, dataset.shape[1]))
+        dataset = dataset.reshape((-1, time_win, dataset.shape[-1]))
     return dataset
 
 
@@ -124,7 +129,6 @@ class DataTransform(object):
 
 
 if __name__ == '__main__':
-    c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP',
-                         mode=1, time_win=0)
+    c_data = data_concat(src_path=r'/data/lbr/transfer_learning/fault_diagnosis/data/TEP',
+                         mode=1, time_win=10, overlap=False)
     print(c_data.shape)
-    print(c_data.reshape((c_data.shape[0], 1, c_data.shape[1])).shape)
