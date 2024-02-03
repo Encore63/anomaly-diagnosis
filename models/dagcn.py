@@ -10,9 +10,9 @@ from einops import rearrange, reduce, repeat
 
 
 class DAGCN(nn.Module):
-    def __init__(self, num_classes=10, pretrained=False):
+    def __init__(self, in_channels=10, num_classes=10, pretrained=False):
         super(DAGCN, self).__init__()
-        self.model_cnn = resnet18(in_channels=1, num_classes=256)
+        self.model_cnn = CNN(in_channels=in_channels)
         self.model_GCN = MrfGCN(pretrained)
         self.classifier = nn.Sequential(
             nn.Linear(in_features=256, out_features=128),
@@ -31,7 +31,7 @@ class DAGCN(nn.Module):
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-    data = torch.rand((32, 1, 10, 50)).cuda()
+    data = torch.rand((32, 10, 50)).cuda()
     model = DAGCN().cuda()
     summary(model, input_data=data)
     # print(model(data).shape)

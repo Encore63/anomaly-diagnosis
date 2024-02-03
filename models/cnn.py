@@ -1,15 +1,17 @@
+import torch
 import warnings
 
 from torch import nn
+from torchinfo import summary
 
 
 class CNN(nn.Module):
-    def __init__(self, pretrained=False, in_channel=1, out_channel=10):
+    def __init__(self, pretrained=False, in_channels=10):
         super(CNN, self).__init__()
         if pretrained:
             warnings.warn("Pretrained model is not available")
         self.layer1 = nn.Sequential(
-            nn.Conv1d(in_channel, 16, kernel_size=15),
+            nn.Conv1d(in_channels, 16, kernel_size=15),
             nn.BatchNorm1d(16),
             nn.ReLU(inplace=True))
         self.layer2 = nn.Sequential(
@@ -41,3 +43,9 @@ class CNN(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.layer5(x)
         return x
+
+
+if __name__ == '__main__':
+    data = torch.rand((1, 10, 50))
+    model = CNN()
+    summary(model, input_data=data)

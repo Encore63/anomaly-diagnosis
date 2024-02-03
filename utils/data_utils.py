@@ -28,7 +28,7 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=Non
     normal_data = pd.read_csv(src_path.joinpath('mode{}_d00.csv'.format(mode)))
     normal_data = normal_data.to_numpy()
     scaler.fit(normal_data[1:num_data, :])
-    dataset = np.zeros((1, time_win, 51))
+    dataset = np.zeros((1, time_win, 51)) if time_win != 0 else np.zeros((1, 51))
     count, idx_class = 0, 0
     class_ignore = set(neglect) if neglect is not None else set()
     for root, dirs, files in os.walk(src_path):
@@ -47,16 +47,23 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10, neglect=Non
                                          fault_data[0:num_data, 50:52]), axis=1)
             label = np.array([[idx_class]] * len(fault_data))
             fault_data = np.concatenate((fault_data, label), axis=1)
-            data_temp = np.zeros(((len(fault_data) - time_win + 1), time_win, fault_data.shape[1]))
-            for _i in range((len(fault_data) - time_win + 1)):
-                for _j in range(time_win):
-                    data_temp[_i, _j] = fault_data[_i + _j]
+            if time_win != 0:
+                data_temp = np.zeros(((len(fault_data) - time_win + 1), time_win, fault_data.shape[1]))
+                for _i in range((len(fault_data) - time_win + 1)):
+                    for _j in range(time_win):
+                        data_temp[_i, _j] = fault_data[_i + _j]
+            else:
+                data_temp = fault_data
             dataset = np.concatenate((dataset, data_temp), axis=0)
             count += 1
             idx_class += 1
             if count >= num_classes:
                 break
-    dataset = dataset[1:dataset.shape[0], :, :]
+    if time_win != 0:
+        dataset = dataset[1:dataset.shape[0], :, :]
+    else:
+        dataset = dataset[1:dataset.shape[0], :]
+        dataset = dataset.reshape((dataset.shape[0], 1, dataset.shape[1]))
     return dataset
 
 
@@ -117,5 +124,7 @@ class DataTransform(object):
 
 
 if __name__ == '__main__':
-    c_data = data_concat(src_path=r'D:\PyProjects\FaultDiagnosis\data\TEP', mode=1)
+    c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP',
+                         mode=1, time_win=0)
     print(c_data.shape)
+    print(c_data.reshape((c_data.shape[0], 1, c_data.shape[1])).shape)

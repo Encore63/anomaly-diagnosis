@@ -54,6 +54,6 @@ if __name__ == '__main__':
                          data_domains={'source': 1, 'target': 3},
                          dataset_mode='test',
                          transform=None,
-                         time_win=100)
+                         time_win=0)
     data_iter = DataLoader(dataset, batch_size=32, shuffle=True)
     print(len(data_iter) * data_iter.batch_size)
