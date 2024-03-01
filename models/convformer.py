@@ -3,10 +3,11 @@ import torch
 from torch import nn
 from torchinfo import summary
 from transformer import Transformer
+from einops import rearrange, repeat
 
 
 class ConvFormer(nn.Module):
-    def __init__(self, in_channels, num_classes):
+    def __init__(self, in_channels):
         super(ConvFormer, self).__init__()
 
         self.conv_module = nn.Sequential(
@@ -18,7 +19,46 @@ class ConvFormer(nn.Module):
             nn.MaxPool1d(2)
         )
 
-        # self.transformer_layer_1 = Transformer(dim=64, depth=1, heads=8)
+        self.transformer = nn.Sequential(
+            Transformer(dim=64, depth=1, heads=8, mlp_dim=128),
+            Transformer(dim=64, depth=1, heads=8, mlp_dim=128)
+        )
+
+        self.linear_module = nn.Sequential(
+            nn.Linear(in_features=64 * 4, out_features=32 * 4),
+            nn.Linear(in_features=32 * 4, out_features=16 * 4)
+        )
 
     def forward(self, x):
-        ...
+        features = self.conv_module(x)
+        features = rearrange(features, 'b c h -> b h c')
+        features = self.transformer(features)
+        features = features.view(features.size(0), -1)
+        output = self.linear_module(features)
+        return output
+
+
+class Classifier(nn.Module):
+    def __init__(self, in_channels, hidden_dim, num_classes):
+        super(Classifier, self).__init__()
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=in_channels, out_features=hidden_dim),
+            nn.ReLU(),
+            nn.Linear(in_features=hidden_dim, out_features=hidden_dim),
+            nn.ReLU(),
+            nn.Linear(in_features=hidden_dim, out_features=num_classes)
+        )
+
+    def forward(self, x):
+        output = self.classifier(x)
+        return output
+
+
+if __name__ == '__main__':
+    classifier = Classifier(in_channels=64, hidden_dim=128, num_classes=10)
+    model = ConvFormer(in_channels=10)
+
+    data = torch.rand((1, 10, 50))
+    logit = model(data)
+    logit = classifier(logit)
+    print(logit.shape)
