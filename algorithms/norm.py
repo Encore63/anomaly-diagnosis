@@ -35,7 +35,7 @@ def collect_stats(model):
     stats = []
     names = []
     for nm, m in model.named_modules():
-        if isinstance(m, nn.BatchNorm2d):
+        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.LayerNorm):
             state = m.state_dict()
             if m.affine:
                 del state['weight'], state['bias']
@@ -50,7 +50,7 @@ def configure_model(model, eps, momentum, reset_stats, no_stats):
     Configure model for adaptation by test-time normalization.
     """
     for m in model.modules():
-        if isinstance(m, nn.BatchNorm2d):
+        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             # use batch-wise statistics in forward
             m.train()
             # configure epsilon for stability, and momentum for updates

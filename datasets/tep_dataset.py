@@ -60,4 +60,6 @@ if __name__ == '__main__':
                          transform=None,
                          overlap=False)
     data_iter = DataLoader(dataset, batch_size=128, shuffle=True)
-    print(len(data_iter) * data_iter.batch_size, list(data_iter)[0][0].shape)
+    for x, y in data_iter:
+        print(x.shape, y.shape)
+        break

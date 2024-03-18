@@ -5,7 +5,6 @@ import numpy as np
 
 from torch import nn
 from default import cfg
-from typing import Union
 from models.mlp import MLP
 from models.resnet import resnet18
 from models.ctxnet import ContextNet
