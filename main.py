@@ -40,13 +40,13 @@ if __name__ == '__main__':
     elif cfg.MODEL.NAME == 'BiLSTM':
         model = BiLSTM(out_channel=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     elif cfg.MODEL.NAME == 'DAGCN':
-        model = DAGCN(num_classes=10).to(cfg.BASIC.DEVICE)
+        model = DAGCN(num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     elif cfg.MODEL.NAME == 'CNN':
-        model = CNN(in_channels=50).to(cfg.BASIC.DEVICE)
+        model = CNN(in_channels=cfg.DATA.TIME_WINDOW).to(cfg.BASIC.DEVICE)
     elif cfg.MODEL.NAME == 'ConvFormer':
-        model = Liconvformer(None, 50, 10).to(cfg.BASIC.DEVICE)
+        model = Liconvformer(None, cfg.DATA.TIME_WINDOW, cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     else:
-        model = resnet18(in_channels=1, num_classes=10).to(cfg.BASIC.DEVICE)
+        model = resnet18(in_channels=1, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
 
     criterion = torch.nn.CrossEntropyLoss()
 
