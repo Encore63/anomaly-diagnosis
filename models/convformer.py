@@ -1,11 +1,11 @@
-from typing import Optional, Tuple, Union, Dict
 import math
 import torch
 import torch.nn as nn
-from torch import Tensor
-from torch.nn import functional as F
 
+from torch import Tensor
 from torchinfo import summary
+from torch.nn import functional as F
+from resnet import resnet18, ResNetFeature
 
 
 class ConvBNReLU(nn.Sequential):
@@ -56,11 +56,11 @@ class Add(nn.Module):
 class Embedding(nn.Module):
     def __init__(self, d_in, d_out, stride=2, n=4):
         super(Embedding, self).__init__()
-        d_hidden = d_out//n
+        d_hidden = d_out // n
         self.conv1 = nn.Conv1d(d_in, d_hidden, 1, 1)
         self.sconv = nn.ModuleList([
-            nn.Conv1d(d_hidden, d_hidden, 2*i+2*stride-1,
-                      stride=stride, padding=stride+i-1, groups=d_hidden, bias=False)
+            nn.Conv1d(d_hidden, d_hidden, 2 * i + 2 * stride - 1,
+                      stride=stride, padding=stride + i - 1, groups=d_hidden, bias=False)
             for i in range(n)])
         self.act_bn = nn.Sequential(
             nn.BatchNorm1d(d_out), nn.GELU())
@@ -154,7 +154,7 @@ class LFEL(nn.Module):
 
         self.embed = Embedding(d_in, d_out, stride=2, n=4)
         self.block = BA_FFN_Block(dim=d_out,
-                                  ffn_dim=d_out//4,
+                                  ffn_dim=d_out // 4,
                                   drop=drop,
                                   attn_drop=drop)
 
@@ -163,32 +163,41 @@ class LFEL(nn.Module):
         return self.block(x)
 
 
-class Liconvformer(nn.Module):
-    def __init__(self, _, in_channel, out_channel, drop=0.1, dim=32):
-        super(Liconvformer, self).__init__()
+class LiConvFormer(nn.Module):
+    def __init__(self, use_residual, in_channel, out_channel, drop=0.1, dim=32):
+        super(LiConvFormer, self).__init__()
+        self.dim = dim
 
-        self.in_layer = nn.Sequential(
-            nn.AvgPool1d(2, 2),
-            ConvBNReLU(in_channel, dim, kernel_size=15, stride=2)
-        )
+        if use_residual:
+            resnet_model = resnet18(in_channel, out_channel)
+            self.in_layer = ResNetFeature(resnet_model, layer_bound=-1, flatten=False)
+        else:
+            self.in_layer = nn.Sequential(
+                nn.AvgPool1d(2, 2),
+                ConvBNReLU(in_channel, dim, kernel_size=15, stride=2)
+            )
 
         self.LFELs = nn.Sequential(
-            LFEL(dim, 2*dim, drop),
-            LFEL(2*dim, 4*dim, drop),
-            LFEL(4*dim, 8*dim, drop),
+            LFEL(dim, 2 * dim, drop),
+            LFEL(2 * dim, 4 * dim, drop),
+            LFEL(4 * dim, 8 * dim, drop),
             nn.AdaptiveAvgPool1d(1)
         )
 
-        self.out_layer = nn.Linear(8*dim, out_channel)
+        self.out_layer = nn.Linear(8 * dim, out_channel)
 
     def forward(self, x):
         x = self.in_layer(x)
+        if isinstance(self.in_layer, ResNetFeature):
+            x = x.reshape(x.shape[0], self.dim, -1)
         x = self.LFELs(x)
         x = self.out_layer(x.squeeze())
         return x
 
 
 if __name__ == '__main__':
-    data = torch.randn((1, 10, 50))
-    model = Liconvformer(None, in_channel=10, out_channel=10)
+    data = torch.randn((64, 1, 10, 50))
+    model = LiConvFormer(use_residual=True, in_channel=1, out_channel=10)
+    model = ResNetFeature(model, flatten=True)
+    print(model(data).shape)
     summary(model, input_data=data)

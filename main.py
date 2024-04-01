@@ -9,7 +9,7 @@ from models.resnet import resnet18
 from models.tenet import TENet, ReTENet
 from models.dagcn import DAGCN
 from models.cnn import CNN
-from models.convformer import Liconvformer
+from models.convformer import LiConvFormer
 from training_pipeline import *
 from testing_pipeline import *
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     elif cfg.MODEL.NAME == 'CNN':
         model = CNN(in_channels=cfg.DATA.TIME_WINDOW).to(cfg.BASIC.DEVICE)
     elif cfg.MODEL.NAME == 'ConvFormer':
-        model = Liconvformer(None, cfg.DATA.TIME_WINDOW, cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+        model = LiConvFormer(None, cfg.DATA.TIME_WINDOW, cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
     else:
         model = resnet18(in_channels=1, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
 

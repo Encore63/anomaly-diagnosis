@@ -131,6 +131,19 @@ class ResNet(nn.Module):
         return output
 
 
+class ResNetFeature(nn.Module):
+    def __init__(self, origin_model, layer_bound=-1, flatten=False):
+        super(ResNetFeature, self).__init__()
+        self.flatten = flatten
+        self.features = nn.Sequential(*list(origin_model.children())[:layer_bound])
+
+    def forward(self, x):
+        x = self.features(x)
+        if self.flatten:
+            x = x.view(x.size(0), -1)
+        return x
+
+
 def resnet18(in_channels, num_classes):
     """
     return a ResNet 18 object
@@ -141,7 +154,9 @@ def resnet18(in_channels, num_classes):
 
 if __name__ == '__main__':
     model = resnet18(in_channels=1, num_classes=256)
+    fea = ResNetFeature(model, flatten=False)
     data = torch.randn((1, 1, 10, 50))
     logit = model(data)
-    summary(model, input_data=data)
+    print(fea(data).squeeze(-1).shape)
+    # summary(model, input_data=data)
     print(logit.shape)
