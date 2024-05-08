@@ -163,6 +163,21 @@ class LFEL(nn.Module):
         return self.block(x)
 
 
+class ModelFeature(ResNetFeature):
+    def __init__(self, origin_model, flatten):
+        assert isinstance(origin_model, LiConvFormer), 'Invalid Model Type!'
+        super(ModelFeature, self).__init__(origin_model, flatten=flatten)
+        self.orig_model = origin_model
+        self.in_layer = origin_model.in_layer
+        self.feature = origin_model.LFELs
+
+    def forward(self, x):
+        x = self.in_layer(x)
+        x = x.reshape(x.shape[0], self.orig_model.dim, -1)
+        x = self.feature(x)
+        return x
+
+
 class LiConvFormer(nn.Module):
     def __init__(self, use_residual, in_channel, out_channel, drop=0.1, dim=32):
         super(LiConvFormer, self).__init__()
@@ -171,6 +186,7 @@ class LiConvFormer(nn.Module):
         if use_residual:
             resnet_model = resnet18(in_channel, out_channel)
             self.in_layer = ResNetFeature(resnet_model, layer_bound=-1, flatten=False)
+            self.in_layer.features.append(nn.Flatten())
         else:
             self.in_layer = nn.Sequential(
                 nn.AvgPool1d(2, 2),
@@ -196,8 +212,9 @@ class LiConvFormer(nn.Module):
 
 
 if __name__ == '__main__':
-    data = torch.randn((64, 1, 10, 50))
+    data = torch.randn((1, 1, 10, 50))
+    # trans = LFEL(10, 10, drop=0.1)
     model = LiConvFormer(use_residual=True, in_channel=1, out_channel=10)
-    model = ResNetFeature(model, flatten=True)
-    print(model(data).shape)
+    model = ModelFeature(model, flatten=False)
+    # print(trans(data).shape)
     summary(model, input_data=data)

@@ -1,9 +1,9 @@
+import torch
 import itertools
 import numpy as np
-import seaborn as sns
-import torch
 
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
 from datasets.tep_dataset import TEPDataset
 from torch.utils.data.dataloader import DataLoader
@@ -54,12 +54,17 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.show()
 
 
-def plot_embedding(data, label, title='t-SNE') -> plt.Figure:
+def plot_embedding(data, label, method='t-SNE', title='t-SNE') -> plt.Figure:
     print('Plotting embeddings...')
-    tsne = TSNE(n_components=2, init='pca', random_state=0)
-    data = tsne.fit_transform(data)
+    if method == 'pca':
+        dim_reduction_tool = PCA(n_components=2, random_state=0)
+        title = 'pca'
+    else:
+        dim_reduction_tool = TSNE(n_components=2, init='pca', random_state=0)
+    data = dim_reduction_tool.fit_transform(data)
 
     x_min, x_max = np.min(data, 0), np.max(data, 0)
+    # Min-max 归一化
     data = (data - x_min) / (x_max - x_min)
 
     fig = plt.figure()
@@ -68,8 +73,6 @@ def plot_embedding(data, label, title='t-SNE') -> plt.Figure:
         plt.text(data[i, 0], data[i, 1], str(label[i]),
                  color=plt.cm.Set1(label[i] / 10.),
                  fontdict={'weight': 'bold', 'size': 9})
-    plt.xticks([])
-    plt.yticks([])
     plt.title(title)
     return fig
 
@@ -91,6 +94,7 @@ if __name__ == '__main__':
         logit = logit.detach().cpu().numpy()
         logit = np.argmax(logit, axis=1)
         print(logit.shape)
+
         labels = []
         for item in y:
             labels.extend([item] * x.shape[1])

@@ -129,6 +129,6 @@ class DataTransform(object):
 
 
 if __name__ == '__main__':
-    c_data = data_concat(src_path=r'/data/lbr/transfer_learning/fault_diagnosis/data/TEP',
-                         mode=1, time_win=10, overlap=False)
+    c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP',
+                         mode=1, time_win=10, overlap=True)
     print(c_data.shape)
