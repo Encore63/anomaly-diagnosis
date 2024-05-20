@@ -113,3 +113,8 @@ if __name__ == '__main__':
             test_with_arm(test_iter=dataloaders['test'],
                           model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
                           args=cfg)
+
+        if testing_pipeline == 'delta':
+            test_with_delta(test_iter=dataloaders['test'],
+                            model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                            args=cfg)

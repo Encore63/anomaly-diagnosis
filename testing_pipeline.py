@@ -4,6 +4,7 @@ import logging
 
 from torch import nn
 from tqdm import tqdm
+from easydict import EasyDict
 from utils.average_meter import AverageMeter
 from algorithms import tent, norm, arm, delta
 
@@ -81,7 +82,7 @@ def test_with_delta(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = tent.configure_model(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    model = delta.DELTA(args, model)
+    model = delta.DELTA(EasyDict(args), model)
 
     count = 0
     with torch.no_grad():
