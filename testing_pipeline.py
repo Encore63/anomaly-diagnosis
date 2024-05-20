@@ -4,8 +4,8 @@ import logging
 
 from torch import nn
 from tqdm import tqdm
-from algorithms import tent, norm, arm
 from utils.average_meter import AverageMeter
+from algorithms import tent, norm, arm, delta
 
 
 def test_default(test_iter, model_path, args):
@@ -75,3 +75,20 @@ def test_with_arm(test_iter, model_path, args):
         test_loop.set_postfix(loss=f'{loss_meter.avg:.4f}')
     accuracy = count / len(test_iter)
     print('(ARM) Test Accuracy: {:.4f}%'.format(accuracy * 100))
+
+
+def test_with_delta(test_iter, model_path, args):
+    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    model = tent.configure_model(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
+    model = delta.DELTA(args, model)
+
+    count = 0
+    with torch.no_grad():
+        for _, (data, label) in enumerate(test_iter):
+            if torch.cuda.is_available():
+                data, label = data.cuda(), label.cuda()
+            output = model(data)
+            count += torch.eq(torch.argmax(output, 1), label).float().mean()
+        accuracy = count / len(test_iter)
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))

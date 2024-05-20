@@ -1,11 +1,11 @@
 BASIC:
-  LOG_FLAG: False
+  LOG_FLAG: True
 DATA:
   SOURCES:
     - 1
     - 2
     - 3
-  TARGET: 6
+  TARGET: 4
   TIME_WINDOW: 10
   SPLIT_RATIO: [ 0.7, 0.2 ]
 TRAINING:
@@ -18,4 +18,4 @@ TESTING:
 MODEL:
   NAME: 'ResNet'
   ARM: 'ARM_LL'
-  CKPT_SUFFIX: 'arm_ll'
+  CKPT_SUFFIX: 'arm-ll'

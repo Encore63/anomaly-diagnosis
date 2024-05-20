@@ -4,9 +4,10 @@ DATA:
   SOURCE: 1
   TARGET: 2
   SPLIT_RATIO: [ 0.7, 0.2 ]
-  TIME_WINDOW: 10
+  DIM: 3
+  TIME_WINDOW: 100
 MODEL:
-  CKPT_SUFFIX: ''
+  CKPT_SUFFIX: 'conv-former'
 TRAINING:
   PIPELINE: ''
 TESTING:
@@ -14,4 +15,4 @@ TESTING:
   PIPELINE:
     - 'default'
     - 'norm'
-    - 'tent'
+#    - 'tent'
