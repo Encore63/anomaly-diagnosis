@@ -7,14 +7,15 @@ DATA:
   DIM: 3
 TRAINING:
   EPOCHS: 100
+  LABEL_SMOOTHING: 0.2
   PIPELINE: 'default'
 TESTING:
   BATCH_SIZE: 128
   PIPELINE:
     - 'delta'
 MODEL:
-  NAME: 'ConvFormer'
-  CKPT_SUFFIX: ''
+  NAME: 'ResNet'
+  CKPT_SUFFIX: 'resnet'
 
 norm_type: 'rn'
 optim_type: 'adam'

@@ -217,6 +217,8 @@ def init_algorthm(model: nn.Module, criterion, method: str = 'ARM_LL'):
         ll_model = MLP(in_features=cfg.MODEL.NUM_CLASSES, hidden_dim=32,
                        out_features=1, norm_reduce=True).to(cfg.BASIC.DEVICE)
         algorithm = ARM_LL(model=model, loss_fn=criterion, device=cfg.BASIC.DEVICE,
+                           \
+                           
                            learned_loss_net=ll_model, hparams=hparams).to(cfg.BASIC.DEVICE)
     elif method == 'ARM_CML':
         hparams['n_context_channels'] = cfg.MODEL.CONTEXT_CHANNELS

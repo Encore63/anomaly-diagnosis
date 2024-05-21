@@ -1,18 +1,12 @@
-import argparse
-from codecs import BOM_BE
-from copy import deepcopy
-from curses import noecho
-from pickle import NEWOBJ_EX
-
-from easydict import EasyDict
-
-from models.resnet import resnet18
-
-import yaml
 import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from codecs import BOM_BE
+from copy import deepcopy
+from curses import noecho
+from pickle import NEWOBJ_EX
 
 
 # inspired by https://github.com/bethgelab/robustness/tree/aa0a6798fe3973bae5f47561721b59b39f126ab7
@@ -31,7 +25,7 @@ def find_bns(parent, prior):
 
 class TBR(nn.Module):
     def __init__(self, layer, prior):
-        assert prior >= 0 and prior <= 1
+        assert 0 <= prior <= 1
         super().__init__()
         self.layer = layer
         self.layer.eval()
@@ -127,6 +121,8 @@ class DELTA(nn.Module):
             ent_weight = torch.ones_like(pls)
             if self.args.loss_type == 'entropy':
                 entropys = -(p * logp).sum(dim=1)
+
+                
                 if self.args.ent_w:
                     ent_weight = torch.exp(math.log(self.args.class_num) * 0.5 - entropys.clone().detach())
                     use_idx = (ent_weight > 1.)
@@ -156,11 +152,3 @@ class DELTA(nn.Module):
                                                                                                                   keepdim=True)
 
             return outputs
-
-
-if __name__ == '__main__':
-    args = yaml.safe_load(open(r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\configs\delta.yaml'))
-    args = EasyDict(args)
-    model = resnet18(in_channels=1, num_classes=10)
-    delta = DELTA(args, model)
-    print(delta)

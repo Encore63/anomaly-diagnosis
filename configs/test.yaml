@@ -2,12 +2,11 @@ BASIC:
   LOG_FLAG: False
 DATA:
   SOURCE: 1
-  TARGET: 2
+  TARGET: 3
   SPLIT_RATIO: [ 0.7, 0.2 ]
-  DIM: 3
-  TIME_WINDOW: 100
+  TIME_WINDOW: 50
 MODEL:
-  CKPT_SUFFIX: 'conv-former'
+  CKPT_SUFFIX: ''
 TRAINING:
   PIPELINE: ''
 TESTING:
@@ -15,4 +14,4 @@ TESTING:
   PIPELINE:
     - 'default'
     - 'norm'
-#    - 'tent'
+    - 'tent'

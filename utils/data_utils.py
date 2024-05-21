@@ -33,8 +33,6 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
     dataset = np.zeros((1, time_win, 51)) if overlap else np.zeros((1, 51))
     count, idx_class = 0, 0
     class_ignore = set(neglect) if neglect is not None else set()
-    # if mode == 4:
-    #     class_ignore = {1, 4}
     for root, dirs, files in os.walk(src_path):
         sorted_files = sorted(files, key=digit_extract)
         for file in sorted_files:
