@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch import Tensor
 from torchinfo import summary
 from torch.nn import functional as F
-from resnet import resnet18, ResNetFeature
+from .resnet import resnet18, ResNetFeature
 
 
 class ConvBNReLU(nn.Sequential):

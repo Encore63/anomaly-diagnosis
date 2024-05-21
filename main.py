@@ -6,7 +6,6 @@ from utils.logger import get_time
 from utils.logger import save_log
 from models.resnet import resnet18
 from models.tenet import TENet, ReTENet
-# from models.dagcn import DAGCN
 from models.cnn import CNN
 from models.convformer import LiConvFormer
 from training_pipeline import *
