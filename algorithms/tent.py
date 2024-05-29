@@ -2,6 +2,7 @@ import torch.jit
 import torch.nn as nn
 
 from copy import deepcopy
+from utils.loss import fuzzy_entropy
 
 
 class Tent(nn.Module):

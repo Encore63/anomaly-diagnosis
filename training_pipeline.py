@@ -88,7 +88,7 @@ def train_with_arm(domains, model, criterion, args):
     """
     Adaptive Risk Minimization: powered by mata-learning
     """
-    # writer = SummaryWriter(log_dir=f'{args.log_dir}_{args.ckpt_suffix}')
+    # writer = SummaryWriter(log_dir=f'{args.log_dir}core{args.ckpt_suffix}')
     log_tool = logging.getLogger(__name__)
     split_ratio = {'train': args.DATA.SPLIT_RATIO[0],
                    'eval': args.DATA.SPLIT_RATIO[1]}

@@ -30,8 +30,8 @@ class TBR(nn.Module):
         self.layer = layer
         self.layer.eval()
         self.prior = prior
-        self.rmax = 3.0
-        self.dmax = 5.0
+        self.r_max = 3.0
+        self.d_max = 5.0
         self.tracked_num = 0
         # self.running_mean = deepcopy(layer.running_mean)
         # self.running_std = deepcopy(torch.sqrt(layer.running_var) + 1e-5)
@@ -46,14 +46,13 @@ class TBR(nn.Module):
             self.running_mean = batch_mean.detach().clone()
             self.running_std = batch_std.detach().clone()
 
-        r = (batch_std.detach() / self.running_std)  # .clamp_(1./self.rmax, self.rmax)
-        d = ((batch_mean.detach() - self.running_mean) / self.running_std)  # .clamp_(-self.dmax, self.dmax)
+        r = (batch_std.detach() / self.running_std)  # .clamp_(1./self.r_max, self.r_max)
+        d = ((batch_mean.detach() - self.running_mean) / self.running_std)  # .clamp_(-self.d_max, self.d_max)
 
-        input = (input - batch_mean[None, :, None, None]) / batch_std[None, :, None, None] * r[None, :, None, None] + d[
-                                                                                                                      None,
-                                                                                                                      :,
-                                                                                                                      None,
-                                                                                                                      None]
+        input = ((input - batch_mean[None, :, None, None]) /
+                 batch_std[None, :, None, None] *
+                 r[None, :, None, None] +
+                 d[None, :, None, None])
         # input = (input - self.running_mean[None,:,None,None]) / self.running_std[None,:,None,None]
 
         # if len(input)>=128:
@@ -122,7 +121,6 @@ class DELTA(nn.Module):
             if self.args.loss_type == 'entropy':
                 entropys = -(p * logp).sum(dim=1)
 
-                
                 if self.args.ent_w:
                     ent_weight = torch.exp(math.log(self.args.class_num) * 0.5 - entropys.clone().detach())
                     use_idx = (ent_weight > 1.)

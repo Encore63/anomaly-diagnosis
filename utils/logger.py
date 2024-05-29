@@ -13,7 +13,7 @@ def get_time(fmt='%Y%m%d_%H%M%S') -> str:
 def save_log(configs, cfg_file) -> None:
     log_path = Path(configs.PATH.LOG_PATH)
     configs.BASIC.LOG_TIME = get_time()
-    file_name = Path(cfg_file).name.replace('.yaml', '_{}.txt'.format(configs.BASIC.LOG_TIME))
+    file_name = Path(cfg_file).name.replace('.yaml', 'core{}.txt'.format(configs.BASIC.LOG_TIME))
     logging.basicConfig(level=logging.INFO,
                         format='[%(asctime)s] [%(filename)s: %(lineno)4d] %(message)s',
                         datefmt="%y/%m/%d %H:%M:%S",

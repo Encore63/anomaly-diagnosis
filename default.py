@@ -91,5 +91,5 @@ def merge_from_file(cfg_file_path):
 
 
 if __name__ == '__main__':
-    merge_from_file(r'./configs/norm.yaml')
+    merge_from_file(r'configs/norm.yaml')
     print(cfg)

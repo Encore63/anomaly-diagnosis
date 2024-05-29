@@ -2,7 +2,6 @@ import torch
 import numpy as np
 
 
-@torch.jit.script
 def fuzzy_entropy(x, m=2, r=0.25, n=2):
     """
     模糊熵
@@ -34,9 +33,9 @@ def fuzzy_entropy(x, m=2, r=0.25, n=2):
                     sub.append(max(np.abs(i - j)))
             d_value.append(sub)
         # 计算模糊隶属度
-        D = np.exp(-np.power(d_value, n) / r)
+        d = np.exp(-np.power(d_value, n) / r)
         # 计算所有隶属度的平均值
-        lm = np.average(D.ravel())
+        lm = np.average(d.ravel())
         entropy = abs(entropy) - lm
 
     return entropy

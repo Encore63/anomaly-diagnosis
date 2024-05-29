@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 
 from typing import Dict
+
+import torch
 from sklearn.preprocessing import StandardScaler
 
 
@@ -101,29 +103,19 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kw
     return datasets
 
 
-class DataTransform(object):
+def domain_division(model_path, data, p_threshold: float):
     """
-    Tools for data transformation or augmentation
+    域划分
+    :param model_path: 预训练模型路径
+    :param data: 数据
+    :param p_threshold: 阈值
+    :return: 划分结果
     """
-    def __init__(self, data: np.ndarray):
-        self.data = data
-
-    def gaussian(self, sigma: float = 0.01) -> np.ndarray:
-        return self.data + np.random.normal(loc=0, scale=sigma, size=self.data.shape)
-
-    def random_gaussian(self, sigma: float = 0.01):
-        if np.random.randint(2):
-            return self.data
-        else:
-            return self.data + np.random.normal(loc=0, scale=sigma, size=self.data.shape)
-
-    def random_scale(self, sigma: float = 0.01):
-        if np.random.randint(2):
-            return self.data
-        else:
-            scale_factor = np.random.normal(loc=1, scale=sigma, size=(self.data.shape[0], 1))
-            scale_matrix = np.matmul(scale_factor, np.ones((1, self.data.shape[1])))
-            return self.data * scale_matrix
+    model: torch.nn.Module = torch.load(model_path)
+    with torch.no_grad():
+        pred = model(data)
+        max_prob, max_idx = torch.max(pred, dim=-1)
+        mask = max_prob.ge(p_threshold).float()
 
 
 if __name__ == '__main__':
