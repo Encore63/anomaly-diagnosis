@@ -5,8 +5,9 @@ import logging
 from torch import nn
 from tqdm import tqdm
 from easydict import EasyDict
+from dataclasses import dataclass
 from utils.average_meter import AverageMeter
-from algorithms import tent, norm, arm, delta
+from algorithms import tent, norm, arm, delta, divtent
 
 
 def test_default(test_iter, model_path, args):
@@ -78,11 +79,39 @@ def test_with_arm(test_iter, model_path, args):
     print('(ARM) Test Accuracy: {:.4f}%'.format(accuracy * 100))
 
 
-def test_with_delta(test_iter, model_path, args):
+def test_with_data_division(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = tent.configure_model(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    model = delta.DELTA(EasyDict(args), model)
+    model = divtent.DivTent(model, optimizer, steps=5)
+
+    count = 0
+    with torch.no_grad():
+        for _, (data, label) in enumerate(test_iter):
+            if torch.cuda.is_available():
+                data, label = data.cuda(), label.cuda()
+            output = model(data)
+            count += torch.eq(torch.argmax(output, 1), label).float().mean()
+        accuracy = count / len(test_iter)
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
+
+
+def test_with_delta(test_iter, model_path, args):
+    @dataclass
+    class DeltaConfig:
+        norm_type: str = 'rn',
+        optim_type: str = 'adam',
+        loss_type: str = 'entropy',
+        ent_w: bool = False,
+        dot: float = 0.95,
+        old_prior: float = 0.95,
+        optim_lr: float = 0.00025,
+        optim_momentum: float = 0.9,
+        optim_wd: float = 0.,
+        class_num: int = 10
+    delta_config = DeltaConfig()
+    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    model = delta.DELTA(delta_config, model)
 
     count = 0
     with torch.no_grad():

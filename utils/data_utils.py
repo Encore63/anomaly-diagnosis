@@ -1,12 +1,10 @@
 import os
-
+import torch
 import pathlib
 import numpy as np
 import pandas as pd
 
 from typing import Dict
-
-import torch
 from sklearn.preprocessing import StandardScaler
 
 
@@ -103,22 +101,52 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kw
     return datasets
 
 
-def domain_division(model_path, data, p_threshold: float):
+def domain_division(model, data, p_threshold: float = None, use_entropy: bool = False, **kwargs):
     """
-    域划分
-    :param model_path: 预训练模型路径
-    :param data: 数据
+    模型预测
+    :param model: 预训练模型
+    :param data: 待预测数据
     :param p_threshold: 阈值
-    :return: 划分结果
+    :param use_entropy: 是否使用熵作为阈值
+    :return: 预测结果
     """
-    model: torch.nn.Module = torch.load(model_path)
+    from scipy.stats import entropy
+
+    batch_size = data.shape[0]
     with torch.no_grad():
         pred = model(data)
-        max_prob, max_idx = torch.max(pred, dim=-1)
-        mask = max_prob.ge(p_threshold).float()
+        max_prob, max_idx = torch.max(pred, dim=-1, **kwargs)
+
+    if not p_threshold:
+        p_threshold = max_prob.sum() / batch_size  # max_prob.mean()
+        print('p_threshold: {}'.format(p_threshold))
+
+    if use_entropy:
+        e = data * 2
+        e = e / e.sum(dim=2, keepdim=True)
+        e = entropy(e.cpu(), axis=2)
+        e_threshold = e.mean()
+        print('e_threshold: {}'.format(e_threshold))
+        e_mask = torch.from_numpy(e).mean(1).ge(e_threshold).int().cpu()
+    else:
+        e_mask = torch.zeros(batch_size)
+
+    p_mask = max_prob.ge(p_threshold).int().cpu()
+    mask = p_mask if not use_entropy else p_mask | e_mask
+    src_idx = torch.argwhere(mask == 1)
+    tgt_idx = torch.argwhere(mask == 0)
+    source_data = data[src_idx.view(src_idx.shape[0])]
+    target_data = data[tgt_idx.view(tgt_idx.shape[0])]
+    return source_data, target_data
 
 
 if __name__ == '__main__':
-    c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP',
-                         mode=1, time_win=10, overlap=True)
-    print(c_data.shape)
+    # c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP',
+    #                      mode=1, time_win=10, overlap=True)
+    # print(c_data.shape)
+
+    x = torch.randn((16, 10, 50)).to('cuda')
+    src_data, tgt_data = domain_division(model_path=r'../checkpoints/best_model_conv-former.pth',
+                                         data=x,
+                                         use_entropy=True)
+    print(src_data.shape, tgt_data.shape)
