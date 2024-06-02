@@ -112,6 +112,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
     """
     from scipy.stats import entropy
 
+    transfer = False
     batch_size = data.shape[0]
     with torch.no_grad():
         pred = model(data)
@@ -119,14 +120,16 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
 
     if not p_threshold:
         p_threshold = max_prob.sum() / batch_size  # max_prob.mean()
-        print('p_threshold: {}'.format(p_threshold))
 
+    # 计算谱熵
     if use_entropy:
+        if data.shape[1] == 1:
+            transfer = True
+            data = data.reshape((-1, data.shape[2], data.shape[3]))
         e = data * 2
         e = e / e.sum(dim=2, keepdim=True)
         e = entropy(e.cpu(), axis=2)
         e_threshold = e.mean()
-        print('e_threshold: {}'.format(e_threshold))
         e_mask = torch.from_numpy(e).mean(1).ge(e_threshold).int().cpu()
     else:
         e_mask = torch.zeros(batch_size)
@@ -135,6 +138,9 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
     mask = p_mask if not use_entropy else p_mask | e_mask
     src_idx = torch.argwhere(mask == 1)
     tgt_idx = torch.argwhere(mask == 0)
+
+    if transfer:
+        data = data.unsqueeze(dim=1)
     source_data = data[src_idx.view(src_idx.shape[0])]
     target_data = data[tgt_idx.view(tgt_idx.shape[0])]
     return source_data, target_data
@@ -145,8 +151,9 @@ if __name__ == '__main__':
     #                      mode=1, time_win=10, overlap=True)
     # print(c_data.shape)
 
-    x = torch.randn((16, 10, 50)).to('cuda')
-    src_data, tgt_data = domain_division(model_path=r'../checkpoints/best_model_conv-former.pth',
-                                         data=x,
-                                         use_entropy=True)
-    print(src_data.shape, tgt_data.shape)
+    model = torch.load(r'../checkpoints/best_model.pth')
+    x = torch.randn((64, 1, 10, 50)).to('cuda')
+    print(model(x).shape)
+    # src_data, tgt_data = domain_division(model=model,
+    #                                      data=x,
+    #                                      use_entropy=True)

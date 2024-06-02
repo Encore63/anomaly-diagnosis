@@ -28,8 +28,8 @@ class TEPDataset(Dataset):
     def __init__(self, src_path: str, split_ratio: Dict, data_domains: Dict,
                  dataset_mode: str, seed: int = 2024, data_dim: int = 4, neglect: list = None,
                  time_win: int = 10, num_classes: int = 10, overlap: bool = True, transform=None):
-        self.data = data_split(src_path, split_ratio, data_domains, random_seed=seed,
-                               neglect=neglect, num_classes=num_classes, time_win=time_win, overlap=overlap)
+        self.raw_data = data_split(src_path, split_ratio, data_domains, random_seed=seed,
+                                   neglect=neglect, num_classes=num_classes, time_win=time_win, overlap=overlap)
         self.labels = None
         self.domains = data_domains
         self.transform = transform
@@ -52,14 +52,14 @@ class TEPDataset(Dataset):
 
     def _select_dataset_mode(self, mode_choice: str):
         if mode_choice == 'train':
-            self.data = self.data['source_train'][:, :, :-1]
-            self.labels = self.data['source_train'][:, :, -1]
+            self.data = self.raw_data['source_train'][:, :, :-1]
+            self.labels = self.raw_data['source_train'][:, :, -1]
         elif mode_choice == 'eval':
-            self.data = self.data['source_eval'][:, :, :-1]
-            self.labels = self.data['source_eval'][:, :, -1]
+            self.data = self.raw_data['source_eval'][:, :, :-1]
+            self.labels = self.raw_data['source_eval'][:, :, -1]
         elif mode_choice == 'test' and self.domains['target'] is not None:
-            self.data = self.data['target_test'][:, :, :-1]
-            self.labels = self.data['target_test'][:, :, -1]
+            self.data = self.raw_data['target_test'][:, :, :-1]
+            self.labels = self.raw_data['target_test'][:, :, -1]
         else:
             assert self.data is not None or self.labels is not None, 'Given data does not exist!'
 

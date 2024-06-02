@@ -109,7 +109,7 @@ class DELTA(nn.Module):
 
         self.qhat = torch.zeros(1, self.args.class_num).cuda() + (1. / self.args.class_num)
 
-    def forward(self, x, target):
+    def forward(self, x):
         with torch.enable_grad():
             outputs = self.model(x)
 

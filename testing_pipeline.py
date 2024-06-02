@@ -4,8 +4,6 @@ import logging
 
 from torch import nn
 from tqdm import tqdm
-from easydict import EasyDict
-from dataclasses import dataclass
 from utils.average_meter import AverageMeter
 from algorithms import tent, norm, arm, delta, divtent
 
@@ -81,9 +79,9 @@ def test_with_arm(test_iter, model_path, args):
 
 def test_with_data_division(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
-    model = tent.configure_model(model)
+    model = divtent.configure_model(model, weight=None)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    model = divtent.DivTent(model, optimizer, steps=5)
+    model = divtent.DivTent(model, optimizer, steps=1, use_entropy=False)
 
     count = 0
     with torch.no_grad():
@@ -93,25 +91,17 @@ def test_with_data_division(test_iter, model_path, args):
             output = model(data)
             count += torch.eq(torch.argmax(output, 1), label).float().mean()
         accuracy = count / len(test_iter)
-    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(DivTent)', accuracy * 100))
 
 
 def test_with_delta(test_iter, model_path, args):
-    @dataclass
-    class DeltaConfig:
-        norm_type: str = 'rn',
-        optim_type: str = 'adam',
-        loss_type: str = 'entropy',
-        ent_w: bool = False,
-        dot: float = 0.95,
-        old_prior: float = 0.95,
-        optim_lr: float = 0.00025,
-        optim_momentum: float = 0.9,
-        optim_wd: float = 0.,
-        class_num: int = 10
-    delta_config = DeltaConfig()
+    from omegaconf import OmegaConf
+    from easydict import EasyDict
+
+    delta_cfg = OmegaConf.load(r'./configs/delta_cfg.yaml')
     model = torch.load(model_path).to(args.BASIC.DEVICE)
-    model = delta.DELTA(delta_config, model)
+    delta_cfg = EasyDict(delta_cfg)
+    model = delta.DELTA(delta_cfg, model)
 
     count = 0
     with torch.no_grad():
@@ -121,4 +111,4 @@ def test_with_delta(test_iter, model_path, args):
             output = model(data)
             count += torch.eq(torch.argmax(output, 1), label).float().mean()
         accuracy = count / len(test_iter)
-    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
+    print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Delta)', accuracy * 100))

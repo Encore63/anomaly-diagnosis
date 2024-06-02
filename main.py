@@ -112,3 +112,8 @@ if __name__ == '__main__':
             test_with_delta(test_iter=dataloaders['test'],
                             model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
                             args=cfg)
+
+        if testing_pipeline == 'divtent':
+            test_with_data_division(test_iter=dataloaders['test'],
+                                    model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                                    args=cfg)

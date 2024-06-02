@@ -24,13 +24,14 @@ class WeightedBatchNorm2d(nn.Module):
 
 
 class DivTent(nn.Module):
-    def __init__(self, model, optimizer, steps=1, episodic=False):
+    def __init__(self, model, optimizer, steps=1, episodic=False, use_entropy=False):
         super().__init__()
         self.model = model
         self.optimizer = optimizer
         self.steps = steps
         assert steps > 0, "tent requires >= 1 step(s) to forward and update"
         self.episodic = episodic
+        self.use_entropy = use_entropy
 
         # note: if the model is never reset, like for continual adaptation,
         # then skipping the state copy would save memory
@@ -42,7 +43,7 @@ class DivTent(nn.Module):
             self.reset()
 
         for _ in range(self.steps):
-            outputs = forward_and_adapt(x, self.model, self.optimizer)
+            outputs = forward_and_adapt(x, self.model, self.optimizer, self.use_entropy)
 
         return outputs
 
@@ -62,23 +63,24 @@ def softmax_entropy(x: torch.Tensor) -> torch.Tensor:
 
 
 @torch.enable_grad()  # ensure grads in possible no grad context for testing
-def forward_and_adapt(x, model, optimizer):
+def forward_and_adapt(x, model, optimizer, use_entropy):
     """
     Forward and adapt model on batch of data.
 
     Measure entropy of the model prediction, take gradients, and update params.
     """
     # forward
-    certain_data, uncertain_data = domain_division(model, x, use_entropy=False)
-    outputs_with_uncertain_data = model(uncertain_data)
-    outputs_with_certain_data = model(certain_data)
-    outputs = torch.concat([outputs_with_uncertain_data, outputs_with_certain_data], dim=0)
+    alpha = 0.5
+    certain_data, uncertain_data = domain_division(model, x, use_entropy=use_entropy)
+    data = torch.concat([certain_data * (1 - alpha), uncertain_data * alpha], dim=0)
+    outputs = model(data)
 
     # adapt
-    loss_with_uncertain_data = tsallis_entropy(outputs_with_uncertain_data).mean(0)
-    loss_with_certain_data = -softmax_entropy(outputs_with_certain_data).mean(0)
+    # loss_with_uncertain_data = tsallis_entropy(outputs_with_uncertain_data).mean(0)
+    # loss_with_certain_data = -softmax_entropy(outputs_with_certain_data).mean(0)
+    # loss = loss_with_uncertain_data + loss_with_certain_data
 
-    loss = loss_with_uncertain_data + loss_with_certain_data
+    loss = softmax_entropy(outputs).mean(0)
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
@@ -133,7 +135,7 @@ def configure_model(model, weight: torch.Tensor):
     # configure norm for tent updates: enable grad + force batch statistics
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d):
-            m = WeightedBatchNorm2d(m.num_features, weight, m.eps, m.momentum, m.affine, m.track_running_stats)
+            # m = WeightedBatchNorm2d(m.num_features, weight, m.eps, m.momentum, m.affine, m.track_running_stats)
             m.requires_grad_(True)
             # force use of batch stats in train and eval modes
             m.track_running_stats = False
