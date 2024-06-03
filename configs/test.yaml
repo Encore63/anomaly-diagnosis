@@ -2,19 +2,20 @@ BASIC:
   LOG_FLAG: False
 DATA:
   SOURCE: 1
-  TARGET: 3
+  TARGET: 5
   SPLIT_RATIO: [ 0.7, 0.2 ]
   TIME_WINDOW: 36
-  DIM: 3
+  DIM: 4
 MODEL:
   NAME: 'ResNet'
   CKPT_SUFFIX: ''
 TRAINING:
   BATCH_SIZE: 128
-  PIPELINE: 'default'
+  PIPELINE: ''
   LABEL_SMOOTHING: 0.0
 TESTING:
   BATCH_SIZE: 128
+  USE_ENTROPY: True
   PIPELINE:
     - 'default'
     - 'norm'

@@ -101,14 +101,16 @@ def data_split(src_path: str, ratio: Dict, domains: Dict, random_seed: int, **kw
     return datasets
 
 
-def domain_division(model, data, p_threshold: float = None, use_entropy: bool = False, **kwargs):
+def domain_division(model, data, p_threshold: float = None, use_entropy: bool = False, weighting: bool = False,
+                    **kwargs):
     """
-    模型预测
-    :param model: 预训练模型
-    :param data: 待预测数据
-    :param p_threshold: 阈值
-    :param use_entropy: 是否使用熵作为阈值
-    :return: 预测结果
+    数据域划分
+    :param model: 模型
+    :param data: 数据
+    :param p_threshold: 概率阈值
+    :param use_entropy: 是否使用谱熵
+    :param weighting: 是否使用权重
+    :return: 经划分后的数据集
     """
     from scipy.stats import entropy
 
@@ -145,6 +147,14 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
         data = data.unsqueeze(dim=1)
     source_data = data[src_idx]
     target_data = data[tgt_idx]
+    if weighting:
+        with torch.no_grad():
+            src_logit, tgt_logit = model(source_data), model(target_data)
+            src_w = -(torch.softmax(src_logit, dim=-1) * torch.log_softmax(src_logit, dim=-1)).sum(-1).mean(0)
+            tgt_w = -(torch.softmax(tgt_logit, dim=-1) * torch.log_softmax(tgt_logit, dim=-1)).sum(-1).mean(0)
+            weight = torch.softmax(torch.Tensor([src_w, tgt_w]), dim=0)
+            source_data *= weight[0]
+            target_data *= weight[1]
     return source_data, target_data, src_idx, tgt_idx
 
 

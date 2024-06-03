@@ -70,19 +70,20 @@ def forward_and_adapt(x, model, optimizer, use_entropy):
     Measure entropy of the model prediction, take gradients, and update params.
     """
     # forward
-    certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(model, x, use_entropy=use_entropy)
-    delta = 0.7
-    certain_data = certain_data * (1 - delta)
-    uncertain_data = uncertain_data * delta
+    certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(model, x, use_entropy=use_entropy,
+                                                                               weighting=True)
+    # delta = 0.9
+    certain_data = certain_data
+    uncertain_data = uncertain_data
     # data = domain_merge(certain_data, uncertain_data, certain_idx, uncertain_idx)
     c_outputs = model(certain_data)
     u_outputs = model(uncertain_data)
     outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
 
     # adapt
-    u_loss = tsallis_entropy(u_outputs).mean(0)
+    u_loss = softmax_entropy(u_outputs).mean(0)
     c_loss = -softmax_entropy(c_outputs).mean(0)
-    loss = u_loss * delta + c_loss * (1 - delta)
+    loss = u_loss + c_loss
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
