@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from copy import deepcopy
 from utils.loss import tsallis_entropy
-from utils.data_utils import domain_division
+from utils.data_utils import domain_division, domain_merge
 
 
 class WeightedBatchNorm2d(nn.Module):
@@ -70,20 +70,23 @@ def forward_and_adapt(x, model, optimizer, use_entropy):
     Measure entropy of the model prediction, take gradients, and update params.
     """
     # forward
-    alpha = 0.5
-    certain_data, uncertain_data = domain_division(model, x, use_entropy=use_entropy)
-    data = torch.concat([certain_data * (1 - alpha), uncertain_data * alpha], dim=0)
-    outputs = model(data)
+    certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(model, x, use_entropy=use_entropy)
+    delta = 0.7
+    certain_data = certain_data * (1 - delta)
+    uncertain_data = uncertain_data * delta
+    # data = domain_merge(certain_data, uncertain_data, certain_idx, uncertain_idx)
+    c_outputs = model(certain_data)
+    u_outputs = model(uncertain_data)
+    outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
 
     # adapt
-    # loss_with_uncertain_data = tsallis_entropy(outputs_with_uncertain_data).mean(0)
-    # loss_with_certain_data = -softmax_entropy(outputs_with_certain_data).mean(0)
-    # loss = loss_with_uncertain_data + loss_with_certain_data
-
-    loss = softmax_entropy(outputs).mean(0)
+    u_loss = tsallis_entropy(u_outputs).mean(0)
+    c_loss = -softmax_entropy(c_outputs).mean(0)
+    loss = u_loss * delta + c_loss * (1 - delta)
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
+
     return outputs
 
 
@@ -134,7 +137,7 @@ def configure_model(model, weight: torch.Tensor):
     model.requires_grad_(False)
     # configure norm for tent updates: enable grad + force batch statistics
     for m in model.modules():
-        if isinstance(m, nn.BatchNorm2d):
+        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             # m = WeightedBatchNorm2d(m.num_features, weight, m.eps, m.momentum, m.affine, m.track_running_stats)
             m.requires_grad_(True)
             # force use of batch stats in train and eval modes

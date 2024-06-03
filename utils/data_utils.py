@@ -128,7 +128,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
             data = data.reshape((-1, data.shape[2], data.shape[3]))
         e = data * 2
         e = e / e.sum(dim=2, keepdim=True)
-        e = entropy(e.cpu(), axis=2)
+        e = entropy(e.cpu(), axis=1)
         e_threshold = e.mean()
         e_mask = torch.from_numpy(e).mean(1).ge(e_threshold).int().cpu()
     else:
@@ -138,12 +138,32 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
     mask = p_mask if not use_entropy else p_mask | e_mask
     src_idx = torch.argwhere(mask == 1)
     tgt_idx = torch.argwhere(mask == 0)
+    src_idx = src_idx.view(src_idx.shape[0])
+    tgt_idx = tgt_idx.view(tgt_idx.shape[0])
 
     if transfer:
         data = data.unsqueeze(dim=1)
-    source_data = data[src_idx.view(src_idx.shape[0])]
-    target_data = data[tgt_idx.view(tgt_idx.shape[0])]
-    return source_data, target_data
+    source_data = data[src_idx]
+    target_data = data[tgt_idx]
+    return source_data, target_data, src_idx, tgt_idx
+
+
+def domain_merge(source_data, target_data, source_index, target_index):
+    source_index = list(source_index.cpu().numpy())
+    target_index = list(target_index.cpu().numpy())
+    order = source_index + target_index
+    order.sort()
+
+    s_idx, t_idx = 0, 0
+    result = torch.zeros_like(torch.concat([source_data, target_data], dim=0)).cpu()
+    for i, var in enumerate(order):
+        if var in source_index:
+            result[i] = source_data[s_idx]
+            s_idx += 1
+        elif var in target_index:
+            result[i] = target_data[t_idx]
+            t_idx += 1
+    return result.cuda()
 
 
 if __name__ == '__main__':

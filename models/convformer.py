@@ -1,8 +1,6 @@
-import math
 import torch
 import torch.nn as nn
 
-from torch import Tensor
 from torchinfo import summary
 from torch.nn import functional as F
 from .resnet import resnet18, ResNetFeature
@@ -212,9 +210,8 @@ class LiConvFormer(nn.Module):
 
 
 if __name__ == '__main__':
-    data = torch.randn((1, 1, 10, 50))
-    # trans = LFEL(10, 10, drop=0.1)
-    model = LiConvFormer(use_residual=True, in_channel=1, out_channel=10)
-    model = ModelFeature(model, flatten=False)
-    # print(trans(data).shape)
-    summary(model, input_data=data)
+    data = torch.randn((1, 50, ))
+    model = LiConvFormer(use_residual=False, in_channel=50, out_channel=10)
+    # model = ModelFeature(model, flatten=False)
+    print(model(data).shape)
+    # summary(model, input_data=data)

@@ -43,13 +43,12 @@ def test_with_tent(test_iter, model_path, args):
     model = tent.Tent(model, optimizer)
 
     count = 0
-    with torch.no_grad():
-        for _, (data, label) in enumerate(test_iter):
-            if torch.cuda.is_available():
-                data, label = data.cuda(), label.cuda()
-            output = model(data)
-            count += torch.eq(torch.argmax(output, 1), label).float().mean()
-        accuracy = count / len(test_iter)
+    for _, (data, label) in enumerate(test_iter):
+        if torch.cuda.is_available():
+            data, label = data.cuda(), label.cuda()
+        output = model(data)
+        count += torch.eq(torch.argmax(output, 1), label).float().mean()
+    accuracy = count / len(test_iter)
     print('{: <8s}  Test Accuracy: {:.4f}%'.format('(Tent)', accuracy * 100))
 
 
@@ -81,7 +80,7 @@ def test_with_data_division(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = divtent.configure_model(model, weight=None)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    model = divtent.DivTent(model, optimizer, steps=1, use_entropy=False)
+    model = divtent.DivTent(model, optimizer, steps=1, use_entropy=True)
 
     count = 0
     with torch.no_grad():

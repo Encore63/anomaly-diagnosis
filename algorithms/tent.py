@@ -111,7 +111,7 @@ def configure_model(model):
     model.requires_grad_(False)
     # configure norm for tent updates: enable grad + force batch statistics
     for m in model.modules():
-        if isinstance(m, nn.BatchNorm2d):
+        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             m.requires_grad_(True)
             # force use of batch stats in train and eval modes
             m.track_running_stats = False
