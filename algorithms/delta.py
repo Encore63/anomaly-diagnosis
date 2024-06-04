@@ -94,7 +94,7 @@ class DELTA(nn.Module):
         self.model.requires_grad_(False)
         params = []
         for nm, m in self.model.named_modules():
-            if isinstance(m, nn.BatchNorm2d):
+            if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
                 for np, p in m.named_parameters():
                     if np in ['weight', 'bias']:  # weight is scale, bias is shift
                         p.requires_grad_(True)

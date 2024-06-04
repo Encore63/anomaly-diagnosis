@@ -72,12 +72,13 @@ def forward_and_adapt(x, model, optimizer, use_entropy):
     # forward
     certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(model, x, use_entropy=use_entropy,
                                                                                weighting=True)
-    # delta = 0.9
-    certain_data = certain_data
-    uncertain_data = uncertain_data
-    # data = domain_merge(certain_data, uncertain_data, certain_idx, uncertain_idx)
-    c_outputs = model(certain_data)
+    with torch.no_grad():
+        c_outputs = model(certain_data)
     u_outputs = model(uncertain_data)
+    if len(c_outputs.shape) == 1:
+        c_outputs = c_outputs.unsqueeze(dim=0)
+    if len(u_outputs.shape) == 1:
+        u_outputs = u_outputs.unsqueeze(dim=0)
     outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
 
     # adapt

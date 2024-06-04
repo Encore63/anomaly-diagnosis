@@ -80,7 +80,7 @@ def test_with_data_division(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = divtent.configure_model(model, weight=None)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    model = divtent.DivTent(model, optimizer, steps=5, use_entropy=args.TESTING.USE_ENTROPY)
+    model = divtent.DivTent(model, optimizer, use_entropy=args.TESTING.USE_ENTROPY)
 
     count = 0
     with torch.no_grad():

@@ -2,12 +2,12 @@ BASIC:
   LOG_FLAG: False
 DATA:
   SOURCE: 1
-  TARGET: 5
+  TARGET: 2
   SPLIT_RATIO: [ 0.7, 0.2 ]
   TIME_WINDOW: 36
-  DIM: 4
+  DIM: 3
 MODEL:
-  NAME: 'ResNet'
+  NAME: 'ConvFormer'
   CKPT_SUFFIX: ''
 TRAINING:
   BATCH_SIZE: 128
@@ -20,4 +20,5 @@ TESTING:
     - 'default'
     - 'norm'
     - 'tent'
+    - 'delta'
     - 'divtent'

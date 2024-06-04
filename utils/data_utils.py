@@ -125,12 +125,15 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
 
     # 计算谱熵
     if use_entropy:
+        from antropy import spectral_entropy
+
         if data.shape[1] == 1:
             transfer = True
             data = data.reshape((-1, data.shape[2], data.shape[3]))
-        e = data * 2
-        e = e / e.sum(dim=2, keepdim=True)
-        e = entropy(e.cpu(), axis=1)
+        # e = data * 2
+        # e = e / e.sum(dim=2, keepdim=True)
+        # e = entropy(e.cpu(), axis=1)
+        e = spectral_entropy(data.cpu().numpy(), sf=10, axis=1)
         e_threshold = e.mean()
         e_mask = torch.from_numpy(e).mean(1).ge(e_threshold).int().cpu()
     else:
