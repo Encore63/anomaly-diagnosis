@@ -67,13 +67,14 @@ class TBR(nn.Module):
 
 
 class DELTA(nn.Module):
-    def __init__(self, args, model_old):
+    def __init__(self, args, model_old, use_division=False):
         super().__init__()
         self.args = args
 
         self.model_old = model_old
         self.model_old.eval()
         self.model_old.requires_grad_(False)
+        self.use_division = use_division
         self.reset()
 
     def reset(self):
@@ -111,7 +112,20 @@ class DELTA(nn.Module):
 
     def forward(self, x):
         with torch.enable_grad():
-            outputs = self.model(x)
+            if self.use_division:
+                from utils.data_utils import domain_division, domain_merge
+                certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(self.model_old, x,
+                                                                                           use_entropy=True,
+                                                                                           weighting=True)
+                c_outputs = self.model(certain_data)
+                u_outputs = self.model(uncertain_data)
+                if len(c_outputs.shape) == 1:
+                    c_outputs = c_outputs.unsqueeze(dim=0)
+                if len(u_outputs.shape) == 1:
+                    u_outputs = u_outputs.unsqueeze(dim=0)
+                outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
+            else:
+                outputs = self.model(x)
 
             p = F.softmax(outputs, dim=1)
             p_max, pls = p.max(dim=1)

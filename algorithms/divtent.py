@@ -2,6 +2,7 @@ import torch.jit
 import torch.nn as nn
 
 from copy import deepcopy
+from utils.sam import SAM
 from utils.loss import tsallis_entropy
 from utils.data_utils import domain_division, domain_merge
 
@@ -24,7 +25,7 @@ class WeightedBatchNorm2d(nn.Module):
 
 
 class DivTent(nn.Module):
-    def __init__(self, model, optimizer, steps=1, episodic=False, use_entropy=False):
+    def __init__(self, model, optimizer, steps=1, episodic=False, use_entropy=False, weighting=False):
         super().__init__()
         self.model = model
         self.optimizer = optimizer
@@ -32,6 +33,7 @@ class DivTent(nn.Module):
         assert steps > 0, "tent requires >= 1 step(s) to forward and update"
         self.episodic = episodic
         self.use_entropy = use_entropy
+        self.weighting = weighting
 
         # note: if the model is never reset, like for continual adaptation,
         # then skipping the state copy would save memory
@@ -43,7 +45,8 @@ class DivTent(nn.Module):
             self.reset()
 
         for _ in range(self.steps):
-            outputs = forward_and_adapt(x, self.model, self.optimizer, self.use_entropy)
+            outputs = forward_and_adapt(x, self.model, self.optimizer,
+                                        self.use_entropy, self.weighting)
 
         return outputs
 
@@ -63,7 +66,7 @@ def softmax_entropy(x: torch.Tensor) -> torch.Tensor:
 
 
 @torch.enable_grad()  # ensure grads in possible no grad context for testing
-def forward_and_adapt(x, model, optimizer, use_entropy):
+def forward_and_adapt(x, model, optimizer, use_entropy, weighting):
     """
     Forward and adapt model on batch of data.
 
@@ -71,9 +74,9 @@ def forward_and_adapt(x, model, optimizer, use_entropy):
     """
     # forward
     certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(model, x, use_entropy=use_entropy,
-                                                                               weighting=True)
-    with torch.no_grad():
-        c_outputs = model(certain_data)
+                                                                               weighting=weighting)
+    # with torch.no_grad():
+    c_outputs = model(certain_data)
     u_outputs = model(uncertain_data)
     if len(c_outputs.shape) == 1:
         c_outputs = c_outputs.unsqueeze(dim=0)
@@ -82,12 +85,19 @@ def forward_and_adapt(x, model, optimizer, use_entropy):
     outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
 
     # adapt
+    delta =0.7
     u_loss = softmax_entropy(u_outputs).mean(0)
     c_loss = -softmax_entropy(c_outputs).mean(0)
-    loss = u_loss + c_loss
-    loss.backward()
-    optimizer.step()
+    loss = u_loss * delta + c_loss * (1 - delta)
     optimizer.zero_grad()
+    loss.backward()
+    if isinstance(optimizer, SAM):
+        optimizer.first_step(zero_grad=True)
+        (softmax_entropy(model(uncertain_data)).mean(0) * delta -
+         softmax_entropy(model(certain_data)).mean(0) * (1 - delta)).backward()
+        optimizer.second_step(zero_grad=True)
+    else:
+        optimizer.step()
 
     return outputs
 

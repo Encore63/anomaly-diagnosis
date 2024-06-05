@@ -50,9 +50,11 @@ class Transformer(nn.Module):
                 PreNorm(dim, Attention(dim, heads, dropout=dropout)),
                 PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout))
             ]))
+        self.pool = nn.AdaptiveAvgPool2d((2, mlp_dim // 2))
 
     def forward(self, x):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
+        x = self.pool(x)
         return x

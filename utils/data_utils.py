@@ -133,7 +133,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
         # e = data * 2
         # e = e / e.sum(dim=2, keepdim=True)
         # e = entropy(e.cpu(), axis=1)
-        e = spectral_entropy(data.cpu().numpy(), sf=10, axis=1)
+        e = spectral_entropy(data.cpu().numpy(), sf=0.006, axis=1)
         e_threshold = e.mean()
         e_mask = torch.from_numpy(e).mean(1).ge(e_threshold).int().cpu()
     else:
@@ -156,6 +156,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
             src_w = -(torch.softmax(src_logit, dim=-1) * torch.log_softmax(src_logit, dim=-1)).sum(-1).mean(0)
             tgt_w = -(torch.softmax(tgt_logit, dim=-1) * torch.log_softmax(tgt_logit, dim=-1)).sum(-1).mean(0)
             weight = torch.softmax(torch.Tensor([src_w, tgt_w]), dim=0)
+            # print(weight, src_logit.shape, tgt_logit.shape)
             source_data *= weight[0]
             target_data *= weight[1]
     return source_data, target_data, src_idx, tgt_idx

@@ -77,10 +77,15 @@ def test_with_arm(test_iter, model_path, args):
 
 
 def test_with_data_division(test_iter, model_path, args):
+    from utils.sam import SAM
+
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = divtent.configure_model(model, weight=None)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    model = divtent.DivTent(model, optimizer, use_entropy=args.TESTING.USE_ENTROPY)
+    # optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
+    model = divtent.DivTent(model, optimizer,
+                            use_entropy=args.TESTING.USE_ENTROPY,
+                            weighting=args.TESTING.WEIGHTING)
 
     count = 0
     with torch.no_grad():
@@ -100,7 +105,7 @@ def test_with_delta(test_iter, model_path, args):
     delta_cfg = OmegaConf.load(r'./configs/delta_cfg.yaml')
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     delta_cfg = EasyDict(delta_cfg)
-    model = delta.DELTA(delta_cfg, model)
+    model = delta.DELTA(delta_cfg, model, use_division=True)
 
     count = 0
     with torch.no_grad():

@@ -67,6 +67,7 @@ _C.TRAINING.DELTA = 0
 _C.TESTING = CfgNode()
 _C.TESTING.BATCH_SIZE = 1
 _C.TESTING.USE_ENTROPY = False
+_C.TESTING.WEIGHTING = False
 _C.TESTING.PIPELINE = ['default']  # TESTING PIPELINE CHOICE ('default', 'arm_ll', 'tent')
 
 """
