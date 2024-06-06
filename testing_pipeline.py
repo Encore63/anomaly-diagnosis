@@ -80,10 +80,10 @@ def test_with_data_division(test_iter, model_path, args):
     from utils.sam import SAM
 
     model = torch.load(model_path).to(args.BASIC.DEVICE)
-    model = divtent.configure_model(model, weight=None)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    # optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
-    model = divtent.DivTent(model, optimizer,
+    model = divtent.configure_model(model)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
+    optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
+    model = divtent.DivTent(model, optimizer, steps=5,
                             use_entropy=args.TESTING.USE_ENTROPY,
                             weighting=args.TESTING.WEIGHTING)
 
@@ -101,17 +101,25 @@ def test_with_data_division(test_iter, model_path, args):
 def test_with_delta(test_iter, model_path, args):
     from omegaconf import OmegaConf
     from easydict import EasyDict
+    from utils.data_utils import domain_division, domain_merge
 
     delta_cfg = OmegaConf.load(r'./configs/delta_cfg.yaml')
-    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    old_model = torch.load(model_path).to(args.BASIC.DEVICE)
     delta_cfg = EasyDict(delta_cfg)
-    model = delta.DELTA(delta_cfg, model, use_division=True)
+    model = delta.DELTA(delta_cfg, old_model)
 
     count = 0
     with torch.no_grad():
         for _, (data, label) in enumerate(test_iter):
             if torch.cuda.is_available():
                 data, label = data.cuda(), label.cuda()
+                certain_data, uncertain_data, certain_idx, uncertain_idx = \
+                    domain_division(old_model, data,
+                                    weighting=args.TESTING.WEIGHTING,
+                                    use_entropy=args.TESTING.USE_ENTROPY)
+            model.classifier_adapt(certain_data)
+            model.reset()
+
             output = model(data)
             count += torch.eq(torch.argmax(output, 1), label).float().mean()
         accuracy = count / len(test_iter)

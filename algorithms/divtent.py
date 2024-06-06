@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from copy import deepcopy
 from utils.sam import SAM
-from utils.loss import tsallis_entropy
+from utils.loss import tsallis_entropy, conjugate_loss
 from utils.data_utils import domain_division, domain_merge
 
 
@@ -22,6 +22,29 @@ class WeightedBatchNorm2d(nn.Module):
             x = self.weight * x
         x = self.bn(x)
         return x
+
+
+@torch.enable_grad()
+def classifier_adapt(x: torch.Tensor, model: nn.Module, optimizer: torch.optim.Optimizer):
+    # configure classifier
+    model.train()
+    model.requires_grad_(False)
+    for name, m in model.named_modules():
+        if name == 'fc' or name == 'classifier':
+            m.requires_grad_(True)
+
+    output = model(x)
+    loss = (torch.softmax(output, dim=1) * torch.log_softmax(output, dim=1)).sum(dim=1).mean(0)
+    optimizer.zero_grad()
+    loss.backward()
+    if isinstance(optimizer, SAM):
+        optimizer.first_step(zero_grad=True)
+        (torch.softmax(output, dim=1) * torch.log_softmax(output, dim=1)).sum(dim=1).mean(0).backward()
+        optimizer.second_step(zero_grad=True)
+    else:
+        optimizer.step()
+
+    return output.detach()
 
 
 class DivTent(nn.Module):
@@ -73,28 +96,29 @@ def forward_and_adapt(x, model, optimizer, use_entropy, weighting):
     Measure entropy of the model prediction, take gradients, and update params.
     """
     # forward
-    certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(model, x, use_entropy=use_entropy,
-                                                                               weighting=weighting)
+    certain_data, uncertain_data, certain_idx, uncertain_idx, weight = domain_division(model, x,
+                                                                                       use_entropy=use_entropy,
+                                                                                       weighting=weighting)
+
+    weighted_data = domain_merge(certain_data, uncertain_data, certain_idx, uncertain_idx)
+    outputs = model(weighted_data)
+
     # with torch.no_grad():
-    c_outputs = model(certain_data)
-    u_outputs = model(uncertain_data)
-    if len(c_outputs.shape) == 1:
-        c_outputs = c_outputs.unsqueeze(dim=0)
-    if len(u_outputs.shape) == 1:
-        u_outputs = u_outputs.unsqueeze(dim=0)
-    outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
+    #     c_outputs = model(certain_data)
+    # u_outputs = model(uncertain_data)
+    # if len(c_outputs.shape) == 1:
+    #     c_outputs = c_outputs.unsqueeze(dim=0)
+    # if len(u_outputs.shape) == 1:
+    #     u_outputs = u_outputs.unsqueeze(dim=0)
+    # outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
 
     # adapt
-    delta =0.7
-    u_loss = softmax_entropy(u_outputs).mean(0)
-    c_loss = -softmax_entropy(c_outputs).mean(0)
-    loss = u_loss * delta + c_loss * (1 - delta)
+    loss = softmax_entropy(outputs).mean(0)
     optimizer.zero_grad()
     loss.backward()
     if isinstance(optimizer, SAM):
         optimizer.first_step(zero_grad=True)
-        (softmax_entropy(model(uncertain_data)).mean(0) * delta -
-         softmax_entropy(model(certain_data)).mean(0) * (1 - delta)).backward()
+        (softmax_entropy(model(uncertain_data)).mean(0) - softmax_entropy(model(certain_data)).mean(0)).backward()
         optimizer.second_step(zero_grad=True)
     else:
         optimizer.step()
@@ -139,7 +163,7 @@ def load_model_and_optimizer(model, optimizer, model_state, optimizer_state):
     optimizer.load_state_dict(optimizer_state)
 
 
-def configure_model(model, weight: torch.Tensor):
+def configure_model(model):
     """
     Configure model for use with tent.
     """
@@ -150,7 +174,6 @@ def configure_model(model, weight: torch.Tensor):
     # configure norm for tent updates: enable grad + force batch statistics
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
-            # m = WeightedBatchNorm2d(m.num_features, weight, m.eps, m.momentum, m.affine, m.track_running_stats)
             m.requires_grad_(True)
             # force use of batch stats in train and eval modes
             m.track_running_stats = False

@@ -2,6 +2,7 @@ import torch.jit
 import torch.nn as nn
 
 from copy import deepcopy
+from utils.loss import conjugate_loss
 
 
 class Tent(nn.Module):
@@ -57,7 +58,7 @@ def forward_and_adapt(x, model, optimizer):
     # forward
     outputs = model(x)
     # adapt
-    loss = softmax_entropy(outputs).mean(0)
+    loss = conjugate_loss(outputs).mean(0)
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()

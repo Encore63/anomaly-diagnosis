@@ -150,6 +150,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
         data = data.unsqueeze(dim=1)
     source_data = data[src_idx]
     target_data = data[tgt_idx]
+    weight = []
     if weighting:
         with torch.no_grad():
             src_logit, tgt_logit = model(source_data), model(target_data)
@@ -157,9 +158,9 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
             tgt_w = -(torch.softmax(tgt_logit, dim=-1) * torch.log_softmax(tgt_logit, dim=-1)).sum(-1).mean(0)
             weight = torch.softmax(torch.Tensor([src_w, tgt_w]), dim=0)
             # print(weight, src_logit.shape, tgt_logit.shape)
-            source_data *= weight[0]
-            target_data *= weight[1]
-    return source_data, target_data, src_idx, tgt_idx
+            # source_data *= weight[0]
+            # target_data *= weight[1]
+    return source_data, target_data, src_idx, tgt_idx, weight
 
 
 def domain_merge(source_data, target_data, source_index, target_index):

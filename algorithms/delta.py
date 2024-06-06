@@ -7,6 +7,7 @@ from codecs import BOM_BE
 from copy import deepcopy
 from curses import noecho
 from pickle import NEWOBJ_EX
+from utils.sam import SAM
 
 
 # inspired by https://github.com/bethgelab/robustness/tree/aa0a6798fe3973bae5f47561721b59b39f126ab7
@@ -67,14 +68,14 @@ class TBR(nn.Module):
 
 
 class DELTA(nn.Module):
-    def __init__(self, args, model_old, use_division=False):
+    def __init__(self, args, model_old):
         super().__init__()
         self.args = args
 
         self.model_old = model_old
+        self.model = None
         self.model_old.eval()
         self.model_old.requires_grad_(False)
-        self.use_division = use_division
         self.reset()
 
     def reset(self):
@@ -87,7 +88,7 @@ class DELTA(nn.Module):
         elif self.args.norm_type == 'bn_training':
             self.model.train()
             for nm, m in self.model.named_modules():
-                if isinstance(m, nn.BatchNorm2d):
+                if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
                     m.track_running_stats = False
                     m.running_mean = None
                     m.running_var = None
@@ -107,25 +108,40 @@ class DELTA(nn.Module):
         elif self.args.optim_type == 'sgd':
             self.optimizer = torch.optim.SGD(params, lr=self.args.optim_lr, momentum=self.args.optim_momentum,
                                              weight_decay=self.args.optim_wd)
+        elif self.args.optim_type == 'sam':
+            self.optimizer = SAM(params, base_optimizer=torch.optim.Adam)
 
         self.qhat = torch.zeros(1, self.args.class_num).cuda() + (1. / self.args.class_num)
 
+    @torch.enable_grad()
+    def classifier_adapt(self, x: torch.Tensor, step=1, requires_grad=False):
+        # configure classifier
+        self.model.train()
+        self.model.requires_grad_(False)
+        for name, m in self.model.named_modules():
+            if name == 'fc' or name == 'classifier':
+                m.requires_grad_(True)
+
+        for s in range(step):
+            output = self.model(x)
+            loss = -(torch.softmax(output, dim=1) * torch.log_softmax(output, dim=1)).sum(dim=1).mean(0)
+            self.optimizer.zero_grad()
+            loss.backward()
+            if isinstance(self.optimizer, SAM):
+                self.optimizer.first_step(zero_grad=True)
+                (-(torch.softmax(output, dim=1) * torch.log_softmax(output, dim=1)).sum(dim=1).mean(0)).backward()
+                self.optimizer.second_step(zero_grad=True)
+            else:
+                self.optimizer.step()
+
+        if requires_grad:
+            return output
+        else:
+            return output.detach()
+
     def forward(self, x):
         with torch.enable_grad():
-            if self.use_division:
-                from utils.data_utils import domain_division, domain_merge
-                certain_data, uncertain_data, certain_idx, uncertain_idx = domain_division(self.model_old, x,
-                                                                                           use_entropy=True,
-                                                                                           weighting=True)
-                c_outputs = self.model(certain_data)
-                u_outputs = self.model(uncertain_data)
-                if len(c_outputs.shape) == 1:
-                    c_outputs = c_outputs.unsqueeze(dim=0)
-                if len(u_outputs.shape) == 1:
-                    u_outputs = u_outputs.unsqueeze(dim=0)
-                outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
-            else:
-                outputs = self.model(x)
+            outputs = self.model(x)
 
             p = F.softmax(outputs, dim=1)
             p_max, pls = p.max(dim=1)
