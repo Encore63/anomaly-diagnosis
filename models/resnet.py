@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 
+from einops import rearrange
 from torchinfo import summary
+from models.transformer import Transformer
 
 
 class BasicBlock(nn.Module):
@@ -86,6 +88,7 @@ class ResNet(nn.Module):
             nn.ReLU(inplace=True))
         # we use a different inputsize than the original paper
         # so conv2_x's stride is 1
+        self.attn = Transformer(dim=50, depth=1, heads=5, mlp_dim=64, dropout=0.1)
         self.conv2_x = self._make_layer(block, 64, num_block[0], 1)
         self.conv3_x = self._make_layer(block, 128, num_block[1], 2)
         self.conv4_x = self._make_layer(block, 256, num_block[2], 2)
@@ -118,8 +121,16 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
+    def _forward_attn(self, x):
+        cur_shape = x.shape
+        x = rearrange(x, 'B C L E -> (B C) L E')
+        x = self.attn(x)
+        x = x.reshape(cur_shape)
+        return x
+
     def forward(self, x):
         output = self.conv1(x)
+        output = self._forward_attn(output)
         output = self.conv2_x(output)
         output = self.conv3_x(output)
         output = self.conv4_x(output)
@@ -149,14 +160,11 @@ def resnet18(in_channels, num_classes):
     return a ResNet 18 object
     """
     return ResNet(in_channels=in_channels, num_classes=num_classes,
-                  block=BasicBlock, num_block=[2, 2, 2, 2])
+                  block=BasicBlock, num_block=[1, 1, 1, 1])
 
 
 if __name__ == '__main__':
-    model = resnet18(in_channels=1, num_classes=256)
-    fea = ResNetFeature(model, flatten=False)
-    data = torch.randn((1, 1, 10, 50))
-    logit = model(data)
-    print(fea(data).squeeze(-1).shape)
-    # summary(model, input_data=data)
-    print(logit.shape)
+    model = resnet18(in_channels=1, num_classes=10)
+    data = torch.randn((128, 1, 32, 50))
+    summary(model, input_data=data)
+    # print(model(data).shape)

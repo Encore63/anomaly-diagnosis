@@ -81,9 +81,9 @@ def test_with_data_division(test_iter, model_path, args):
 
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = divtent.configure_model(model)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
-    optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
-    model = divtent.DivTent(model, optimizer, steps=5,
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
+    # optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
+    model = divtent.DivTent(model, optimizer, steps=1,
                             use_entropy=args.TESTING.USE_ENTROPY,
                             weighting=args.TESTING.WEIGHTING)
 
@@ -109,16 +109,18 @@ def test_with_delta(test_iter, model_path, args):
     model = delta.DELTA(delta_cfg, old_model)
 
     count = 0
+    use_division = False
     with torch.no_grad():
         for _, (data, label) in enumerate(test_iter):
             if torch.cuda.is_available():
                 data, label = data.cuda(), label.cuda()
-                certain_data, uncertain_data, certain_idx, uncertain_idx = \
-                    domain_division(old_model, data,
-                                    weighting=args.TESTING.WEIGHTING,
-                                    use_entropy=args.TESTING.USE_ENTROPY)
-            model.classifier_adapt(certain_data)
-            model.reset()
+                if use_division:
+                    certain_data, uncertain_data, certain_idx, uncertain_idx, weight = \
+                        domain_division(old_model, data,
+                                        weighting=args.TESTING.WEIGHTING,
+                                        use_entropy=args.TESTING.USE_ENTROPY)
+                    model.classifier_adapt(uncertain_data, )
+                    model.reset()
 
             output = model(data)
             count += torch.eq(torch.argmax(output, 1), label).float().mean()

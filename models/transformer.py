@@ -42,8 +42,9 @@ class Attention(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, mlp_dim, dropout=0.):
+    def __init__(self, dim, depth, heads, mlp_dim, dropout=0., use_pool=False):
         super().__init__()
+        self.use_pool = use_pool
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
@@ -56,5 +57,14 @@ class Transformer(nn.Module):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
-        x = self.pool(x)
+        if self.use_pool:
+            x = self.pool(x)
         return x
+
+
+if __name__ == '__main__':
+    from torchinfo import summary
+
+    model = Transformer(dim=50, depth=6, heads=10, mlp_dim=128, dropout=0.2)
+    data = torch.randn((128, 32, 50))
+    summary(model, input_data=data)

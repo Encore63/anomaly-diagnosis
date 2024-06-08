@@ -103,11 +103,11 @@ def forward_and_adapt(x, model, optimizer, use_entropy, weighting):
     # weighted_data = domain_merge(certain_data, uncertain_data, certain_idx, uncertain_idx)
     # outputs = model(weighted_data)
 
-    # with torch.no_grad():
-    c_outputs = model(certain_data)
+    with torch.no_grad():
+        c_outputs = model(certain_data)
     u_outputs = model(uncertain_data)
     if len(c_outputs.shape) == 1:
-        c_outputs = c_outputs.unsqueeze(dim=0)
+        c_outputs = c_outputs.unsqueeze(dim=0).detach()
     if len(u_outputs.shape) == 1:
         u_outputs = u_outputs.unsqueeze(dim=0)
     outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
@@ -116,7 +116,7 @@ def forward_and_adapt(x, model, optimizer, use_entropy, weighting):
     c_loss = softmax_entropy(c_outputs).mean(0)
     u_loss = softmax_entropy(u_outputs).mean(0)
     loss = c_loss * weight[0] + u_loss * weight[1]
-    optimizer.zero_grad()
+
     loss.backward()
     if isinstance(optimizer, SAM):
         optimizer.first_step(zero_grad=True)
@@ -124,6 +124,7 @@ def forward_and_adapt(x, model, optimizer, use_entropy, weighting):
         optimizer.second_step(zero_grad=True)
     else:
         optimizer.step()
+        optimizer.zero_grad()
 
     return outputs
 

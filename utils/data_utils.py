@@ -150,7 +150,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
         data = data.unsqueeze(dim=1)
     source_data = data[src_idx]
     target_data = data[tgt_idx]
-    weight = []
+    weight = torch.Tensor([1, 1])
     if weighting:
         with torch.no_grad():
             src_logit, tgt_logit = model(source_data), model(target_data)
