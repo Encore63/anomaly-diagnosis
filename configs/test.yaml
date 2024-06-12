@@ -3,13 +3,13 @@ BASIC:
   LOG_FLAG: False
 DATA:
   SOURCE: 2
-  TARGET: 5
+  TARGET: 3
   SPLIT_RATIO: [ 0.7, 0.2 ]
-  TIME_WINDOW: 36
+  TIME_WINDOW: 10
   DIM: 4
 MODEL:
   NAME: 'ResNet'
-  CKPT_SUFFIX: 'resnet_2'
+  CKPT_SUFFIX: 'resnet_s2'
 TRAINING:
   BATCH_SIZE: 128
   PIPELINE: ''

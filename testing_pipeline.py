@@ -39,7 +39,8 @@ def test_with_adaptive_norm(test_iter, model_path, args):
 def test_with_tent(test_iter, model_path, args):
     model = torch.load(model_path).to(args.BASIC.DEVICE)
     model = tent.configure_model(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
+    params, param_names = tent.collect_params(model)
+    optimizer = torch.optim.Adam(params, lr=args.OPTIM.LEARNING_RATE)
     model = tent.Tent(model, optimizer)
 
     count = 0

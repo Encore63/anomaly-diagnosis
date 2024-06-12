@@ -156,7 +156,9 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
             src_logit, tgt_logit = model(source_data), model(target_data)
             src_w = -(torch.softmax(src_logit, dim=-1) * torch.log_softmax(src_logit, dim=-1)).sum(-1).mean(0)
             tgt_w = -(torch.softmax(tgt_logit, dim=-1) * torch.log_softmax(tgt_logit, dim=-1)).sum(-1).mean(0)
+            # weight = torch.Tensor([src_w, tgt_w])
             weight = torch.softmax(torch.Tensor([src_w, tgt_w]), dim=0)
+            print(weight)
             # print(weight, src_logit.shape, tgt_logit.shape)
             # source_data *= weight[0]
             # target_data *= weight[1]

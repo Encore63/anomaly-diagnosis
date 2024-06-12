@@ -130,7 +130,7 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         output = self.conv1(x)
-        output = self._forward_attn(output)
+        # output = self._forward_attn(output)
         output = self.conv2_x(output)
         output = self.conv3_x(output)
         output = self.conv4_x(output)
@@ -160,7 +160,7 @@ def resnet18(in_channels, num_classes):
     return a ResNet 18 object
     """
     return ResNet(in_channels=in_channels, num_classes=num_classes,
-                  block=BasicBlock, num_block=[1, 1, 1, 1])
+                  block=BasicBlock, num_block=[2, 2, 2, 2])
 
 
 if __name__ == '__main__':

@@ -53,7 +53,7 @@ def train_default(train_iter, eval_iter, model, criterion, args):
             global_train_step += 1
         scheduler.step()
 
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
 
         model.eval()
         eval_loop = tqdm(enumerate(eval_iter), total=len(eval_iter))

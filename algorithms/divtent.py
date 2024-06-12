@@ -88,6 +88,12 @@ def softmax_entropy(x: torch.Tensor) -> torch.Tensor:
     return -(x.softmax(1) * x.log_softmax(1)).sum(1)
 
 
+def division_loss(probs):
+    msoftmax = probs.mean(dim=0)
+    div_loss = torch.sum(-msoftmax * torch.log(msoftmax + 1e-5))
+    return div_loss
+
+
 @torch.enable_grad()  # ensure grads in possible no grad context for testing
 def forward_and_adapt(x, model, optimizer, use_entropy, weighting):
     """
@@ -103,20 +109,21 @@ def forward_and_adapt(x, model, optimizer, use_entropy, weighting):
     # weighted_data = domain_merge(certain_data, uncertain_data, certain_idx, uncertain_idx)
     # outputs = model(weighted_data)
 
-    with torch.no_grad():
-        c_outputs = model(certain_data)
+    all_outputs = model(x)
+    # model = configure_model(model, True)
     u_outputs = model(uncertain_data)
+    c_outputs = model(certain_data)
+    # model = configure_model(model, False)
     if len(c_outputs.shape) == 1:
-        c_outputs = c_outputs.unsqueeze(dim=0).detach()
+        c_outputs = c_outputs.unsqueeze(dim=0)
     if len(u_outputs.shape) == 1:
         u_outputs = u_outputs.unsqueeze(dim=0)
     outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
 
     # adapt
-    c_loss = softmax_entropy(c_outputs).mean(0)
-    u_loss = softmax_entropy(u_outputs).mean(0)
+    c_loss = conjugate_loss(c_outputs).mean(0)
+    u_loss = conjugate_loss(u_outputs).mean(0)
     loss = c_loss * weight[0] + u_loss * weight[1]
-
     loss.backward()
     if isinstance(optimizer, SAM):
         optimizer.first_step(zero_grad=True)
@@ -166,7 +173,7 @@ def load_model_and_optimizer(model, optimizer, model_state, optimizer_state):
     optimizer.load_state_dict(optimizer_state)
 
 
-def configure_model(model):
+def configure_model(model, freeze=False):
     """
     Configure model for use with tent.
     """
@@ -178,10 +185,15 @@ def configure_model(model):
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             m.requires_grad_(True)
-            # force use of batch stats in train and eval modes
-            m.track_running_stats = False
-            m.running_mean = None
-            m.running_var = None
+            if freeze:
+                model.eval()
+                m.training = False
+            else:
+                m.training = True
+                # force use of batch stats in train and eval modes
+                m.track_running_stats = False
+                m.running_mean = None
+                m.running_var = None
     return model
 
 
