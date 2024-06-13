@@ -114,7 +114,7 @@ class DELTA(nn.Module):
         self.qhat = torch.zeros(1, self.args.class_num).cuda() + (1. / self.args.class_num)
 
     @torch.enable_grad()
-    def classifier_adapt(self, x: torch.Tensor, step=1, requires_grad=False):
+    def classifier_adapt(self, x: torch.Tensor, steps=1, requires_grad=False):
         # configure classifier
         self.model.train()
         self.model.requires_grad_(False)

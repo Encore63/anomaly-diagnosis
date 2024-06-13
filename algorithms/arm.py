@@ -2,9 +2,9 @@ import math
 import torch
 import higher
 import numpy as np
+from omegaconf import DictConfig
 
 from torch import nn
-from default import cfg
 from models.mlp import MLP
 from models.resnet import resnet18
 from models.ctxnet import ContextNet
@@ -204,46 +204,28 @@ class ARM_LL(ERM):
         return logits, stats
 
 
-def init_algorthm(model: nn.Module, criterion, method: str = 'ARM_LL'):
+def init_algorthm(cfg: DictConfig, model: nn.Module, criterion, method: str = 'ARM_LL'):
     hparams = {'optimizer': 'Adam',
-               'learning_rate': cfg.OPTIM.LEARNING_RATE,
-               'weight_decay': cfg.OPTIM.WEIGHT_DECAY}
-    hparams.setdefault('support_size', cfg.TRAINING.BATCH_SIZE)
+               'learning_rate': cfg.optim.learning_rate,
+               'weight_decay': cfg.optim.weight_decay}
+    hparams.setdefault('support_size', cfg.util.train.batch_size)
 
     if method == 'ARM_BN':
-        algorithm = ARM_BN(model, loss_fn=criterion, device=cfg.BASIC.DEVICE,
-                           hparams=hparams).to(cfg.BASIC.DEVICE)
+        algorithm = ARM_BN(model, loss_fn=criterion, device=cfg.device,
+                           hparams=hparams).to(cfg.device)
     elif method == 'ARM_LL':
-        ll_model = MLP(in_features=cfg.MODEL.NUM_CLASSES, hidden_dim=32,
-                       out_features=1, norm_reduce=True).to(cfg.BASIC.DEVICE)
-        algorithm = ARM_LL(model=model, loss_fn=criterion, device=cfg.BASIC.DEVICE,
-                           \
-                           
-                           learned_loss_net=ll_model, hparams=hparams).to(cfg.BASIC.DEVICE)
+        ll_model = MLP(in_features=cfg.model.num_classes, hidden_dim=32,
+                       out_features=1, norm_reduce=True).to(cfg.device)
+        algorithm = ARM_LL(model=model, loss_fn=criterion, device=cfg.device,
+                           learned_loss_net=ll_model, hparams=hparams).to(cfg.device)
     elif method == 'ARM_CML':
-        hparams['n_context_channels'] = cfg.MODEL.CONTEXT_CHANNELS
-        hparams['adapt_bn'] = cfg.MODEL.ADAPT_BN
+        hparams['n_context_channels'] = cfg.algorithm.context_channels
+        hparams['adapt_bn'] = cfg.algorithm.adapt_bn
         context_net = ContextNet(in_channels=1, out_channels=1, hidden_dim=64, kernel_size=5)
-        algorithm = ARM_CML(model, loss_fn=criterion, device=cfg.BASIC.DEVICE, context_net=context_net,
-                            hparams=hparams).to(cfg.BASIC.DEVICE)
+        algorithm = ARM_CML(model, loss_fn=criterion, device=cfg.device, context_net=context_net,
+                            hparams=hparams).to(cfg.device)
     else:
-        algorithm = ERM(model=model, loss_fn=criterion, device=cfg.BASIC.DEVICE,
-                        hparams=hparams).to(cfg.BASIC.DEVICE)
+        algorithm = ERM(model=model, loss_fn=criterion, device=cfg.device,
+                        hparams=hparams).to(cfg.device)
 
     return algorithm
-
-
-if __name__ == '__main__':
-    data_domains = {'source': int(cfg.DATA.SOURCE), 'target': int(cfg.DATA.TARGET)}
-    split_ratio = {'train': cfg.DATA.SPLIT_RATIO[0],
-                   'eval': cfg.DATA.SPLIT_RATIO[1]}
-    dataset = TEPDataset(r'../data/TEP', split_ratio, data_domains,
-                         'test', seed=cfg.BASIC.RANDOM_SEED,
-                         time_win=cfg.DATA.TIME_WINDOW)
-    dataloader = DataLoader(dataset, batch_size=128, shuffle=False)
-    algo = init_algorthm(resnet18(in_channels=2), nn.CrossEntropyLoss(), method='ARM_CML')
-
-    for _, (X, y) in enumerate(dataloader):
-        X, y = X.cuda(), y.cuda()
-        print(algo.learn(X, y))
-        break

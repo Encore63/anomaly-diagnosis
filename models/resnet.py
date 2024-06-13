@@ -155,16 +155,16 @@ class ResNetFeature(nn.Module):
         return x
 
 
-def resnet18(in_channels, num_classes):
+def resnet(in_channels, num_classes, num_block=(2, 2, 2, 2)):
     """
     return a ResNet 18 object
     """
     return ResNet(in_channels=in_channels, num_classes=num_classes,
-                  block=BasicBlock, num_block=[2, 2, 2, 2])
+                  block=BasicBlock, num_block=num_block)
 
 
 if __name__ == '__main__':
-    model = resnet18(in_channels=1, num_classes=10)
+    model = resnet(in_channels=1, num_classes=10)
     data = torch.randn((128, 1, 32, 50))
     summary(model, input_data=data)
     # print(model(data).shape)

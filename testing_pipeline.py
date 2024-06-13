@@ -9,7 +9,7 @@ from algorithms import tent, norm, arm, delta, divtent
 
 
 def test_default(test_iter, model_path, args):
-    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    model = torch.load(model_path).to(args.device)
     model.eval()
     count = 0
     with torch.no_grad():
@@ -23,7 +23,7 @@ def test_default(test_iter, model_path, args):
 
 
 def test_with_adaptive_norm(test_iter, model_path, args):
-    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    model = torch.load(model_path).to(args.device)
     model = norm.Norm(model)
     count = 0
     with torch.no_grad():
@@ -37,11 +37,11 @@ def test_with_adaptive_norm(test_iter, model_path, args):
 
 
 def test_with_tent(test_iter, model_path, args):
-    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    model = torch.load(model_path).to(args.device)
     model = tent.configure_model(model)
     params, param_names = tent.collect_params(model)
-    optimizer = torch.optim.Adam(params, lr=args.OPTIM.LEARNING_RATE)
-    model = tent.Tent(model, optimizer)
+    optimizer = torch.optim.Adam(params, lr=args.optim.learning_rate)
+    model = tent.Tent(model, optimizer, steps=args.algorithm.steps)
 
     count = 0
     for _, (data, label) in enumerate(test_iter):
@@ -55,7 +55,7 @@ def test_with_tent(test_iter, model_path, args):
 
 def test_with_arm(test_iter, model_path, args):
     criterion = nn.CrossEntropyLoss()
-    algorithm = torch.load(model_path).to(args.BASIC.DEVICE)
+    algorithm = torch.load(model_path).to(args.device)
     test_loop = tqdm(enumerate(test_iter), total=len(test_iter))
 
     count = 0
@@ -68,7 +68,7 @@ def test_with_arm(test_iter, model_path, args):
         logits = algorithm.predict(data)
         with torch.no_grad():
             loss = criterion(logits, label)
-            loss_meter.update(loss, args.TESTING.BATCH_SIZE)
+            loss_meter.update(loss, args.util.test.batch_size)
             count += torch.eq(torch.argmax(logits, 1), label).float().mean()
 
         test_loop.set_description('ARM Test')
@@ -80,13 +80,13 @@ def test_with_arm(test_iter, model_path, args):
 def test_with_data_division(test_iter, model_path, args):
     from utils.sam import SAM
 
-    model = torch.load(model_path).to(args.BASIC.DEVICE)
+    model = torch.load(model_path).to(args.device)
     model = divtent.configure_model(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.OPTIM.LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.optim.learning_rate)
     # optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
     model = divtent.DivTent(model, optimizer, steps=1,
-                            use_entropy=args.TESTING.USE_ENTROPY,
-                            weighting=args.TESTING.WEIGHTING)
+                            use_entropy=args.algorithm.use_entropy,
+                            weighting=args.algorithm.weighting)
 
     count = 0
     with torch.no_grad():
@@ -100,14 +100,10 @@ def test_with_data_division(test_iter, model_path, args):
 
 
 def test_with_delta(test_iter, model_path, args):
-    from omegaconf import OmegaConf
-    from easydict import EasyDict
     from utils.data_utils import domain_division, domain_merge
 
-    delta_cfg = OmegaConf.load(r'./configs/delta_cfg.yaml')
-    old_model = torch.load(model_path).to(args.BASIC.DEVICE)
-    delta_cfg = EasyDict(delta_cfg)
-    model = delta.DELTA(delta_cfg, old_model)
+    old_model = torch.load(model_path).to(args.device)
+    model = delta.DELTA(args.algorithm, old_model)
 
     count = 0
     use_division = False
@@ -118,9 +114,9 @@ def test_with_delta(test_iter, model_path, args):
                 if use_division:
                     certain_data, uncertain_data, certain_idx, uncertain_idx, weight = \
                         domain_division(old_model, data,
-                                        weighting=args.TESTING.WEIGHTING,
-                                        use_entropy=args.TESTING.USE_ENTROPY)
-                    model.classifier_adapt(uncertain_data, )
+                                        use_entropy=args.algorithm.use_entropy,
+                                        weighting=args.algorithm.weighting)
+                    model.classifier_adapt(uncertain_data)
                     model.reset()
 
             output = model(data)

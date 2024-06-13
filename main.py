@@ -1,122 +1,123 @@
+import hydra
 import pathlib
-import argparse
 
-from default import cfg, merge_from_file
+from omegaconf import DictConfig, OmegaConf
 from utils.logger import get_time
 from utils.logger import save_log
-from models.resnet import resnet18
+from models.resnet import resnet
 from models.tenet import TENet, ReTENet
 from models.cnn import CNN
 from models.convformer import LiConvFormer
-from models.siamnet import SiamNet
 from training_pipeline import *
 from testing_pipeline import *
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', dest='cfg_file', type=str, required=True)
-    parser.add_argument("--opts", default=None, nargs=argparse.REMAINDER,
-                        help="See default.py for all options")
-    args = parser.parse_args()
 
-    merge_from_file(args.cfg_file)
-    if cfg.BASIC.LOG_FLAG:
-        save_log(cfg, args.cfg_file)
+@hydra.main(version_base=None,
+            config_path="./configs",
+            config_name="default")
+def main(cfg: DictConfig):
+    # print(OmegaConf.to_yaml(cfg))
 
-    torch.manual_seed(cfg.BASIC.RANDOM_SEED)
-    torch.cuda.manual_seed(cfg.BASIC.RANDOM_SEED)
-    torch.cuda.set_device(cfg.BASIC.CUDA_ID)
+    torch.manual_seed(cfg.random_seed)
+    torch.cuda.manual_seed(cfg.random_seed)
+    torch.cuda.set_device(cfg.cuda_id)
 
-    if not pathlib.Path(cfg.PATH.DATA_PATH).exists():
-        pathlib.Path(cfg.PATH.DATA_PATH).mkdir()
-    if not pathlib.Path(cfg.PATH.LOG_PATH).exists():
-        pathlib.Path(cfg.PATH.LOG_PATH).mkdir()
-    if not pathlib.Path(cfg.PATH.CKPT_PATH).exists():
-        pathlib.Path(cfg.PATH.CKPT_PATH).mkdir()
+    if not pathlib.Path(cfg.dataset.path).exists():
+        pathlib.Path(cfg.dataset.path).mkdir()
+    if not pathlib.Path(cfg.log_path).exists():
+        pathlib.Path(cfg.log_path).mkdir()
+    if not pathlib.Path(cfg.model.save_path).exists():
+        pathlib.Path(cfg.model.save_path).mkdir()
 
-    if cfg.MODEL.NAME == 'ReTENet':
-        model = ReTENet(num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
-    elif cfg.MODEL.NAME == 'CNN':
-        model = CNN(in_channels=cfg.DATA.TIME_WINDOW).to(cfg.BASIC.DEVICE)
-    elif cfg.MODEL.NAME == 'ConvFormer':
-        model = LiConvFormer(False, cfg.DATA.TIME_WINDOW, cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
-    elif cfg.MODEL.NAME == 'SiamNet':
-        model = SiamNet(num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+    if cfg.model.name == 'TENet':
+        model = ReTENet(num_classes=cfg.model.num_classes).to(cfg.device)
+    elif cfg.model.name == 'CNN':
+        model = CNN(in_channels=cfg.dataset.time_window).to(cfg.device)
+    elif cfg.model.name == 'ConvFormer':
+        model = LiConvFormer(use_residual=cfg.model.use_residual,
+                             in_channel=cfg.dataset.time_window,
+                             out_channel=cfg.model.num_classes).to(cfg.device)
     else:
-        model = resnet18(in_channels=1, num_classes=cfg.MODEL.NUM_CLASSES).to(cfg.BASIC.DEVICE)
+        model = resnet(in_channels=cfg.model.in_channels,
+                       num_classes=cfg.model.num_classes,
+                       num_block=cfg.model.num_block).to(cfg.device)
 
-    criterion = torch.nn.CrossEntropyLoss(label_smoothing=cfg.TRAINING.LABEL_SMOOTHING)
+    criterion = torch.nn.CrossEntropyLoss(label_smoothing=cfg.util.train.label_smoothing)
 
-    cfg.PATH.LOG_PATH = str(pathlib.Path(cfg.PATH.LOG_PATH).joinpath(f'{get_time()}'))
+    cfg.log_path = str(pathlib.Path(cfg.log_path).joinpath(f'{get_time()}'))
 
-    split_ratio = {'train': cfg.DATA.SPLIT_RATIO[0],
-                   'eval': cfg.DATA.SPLIT_RATIO[1]}
+    split_ratio = {'train': cfg.dataset.split_ratio[0],
+                   'eval': cfg.dataset.split_ratio[1]}
 
     datasets, dataloaders = {}, {}
-    data_domains = {'source': int(cfg.DATA.SOURCE), 'target': int(cfg.DATA.TARGET)}
-    datasets.setdefault('train', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
-                                            'train', seed=cfg.BASIC.RANDOM_SEED,
-                                            data_dim=cfg.DATA.DIM,
-                                            time_win=cfg.DATA.TIME_WINDOW,
-                                            overlap=cfg.DATA.OVERLAP))
-    datasets.setdefault('val', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
-                                          'eval', seed=cfg.BASIC.RANDOM_SEED,
-                                          data_dim=cfg.DATA.DIM,
-                                          time_win=cfg.DATA.TIME_WINDOW,
-                                          overlap=cfg.DATA.OVERLAP))
-    datasets.setdefault('test', TEPDataset(cfg.PATH.DATA_PATH, split_ratio, data_domains,
-                                           'test', seed=cfg.BASIC.RANDOM_SEED,
-                                           data_dim=cfg.DATA.DIM,
-                                           time_win=cfg.DATA.TIME_WINDOW,
-                                           overlap=cfg.DATA.OVERLAP))
+    data_domains = {'source': int(cfg.domain.source), 'target': int(cfg.domain.target)}
+    datasets.setdefault('train', TEPDataset(cfg.dataset.path, split_ratio, data_domains,
+                                            'train', seed=cfg.random_seed,
+                                            data_dim=cfg.dataset.dim,
+                                            time_win=cfg.dataset.time_window,
+                                            overlap=cfg.dataset.overlap))
+    datasets.setdefault('val', TEPDataset(cfg.dataset.path, split_ratio, data_domains,
+                                          'eval', seed=cfg.random_seed,
+                                          data_dim=cfg.dataset.dim,
+                                          time_win=cfg.dataset.time_window,
+                                          overlap=cfg.dataset.overlap))
+    datasets.setdefault('test', TEPDataset(cfg.dataset.path, split_ratio, data_domains,
+                                           'test', seed=cfg.random_seed,
+                                           data_dim=cfg.dataset.dim,
+                                           time_win=cfg.dataset.time_window,
+                                           overlap=cfg.dataset.overlap))
 
-    dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))
-    dataloaders.setdefault('val', DataLoader(datasets['val'], batch_size=cfg.TRAINING.BATCH_SIZE, shuffle=True))
-    dataloaders.setdefault('test', DataLoader(datasets['test'], batch_size=cfg.TESTING.BATCH_SIZE, shuffle=False))
+    dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.util.train.batch_size, shuffle=True))
+    dataloaders.setdefault('val', DataLoader(datasets['val'], batch_size=cfg.util.train.batch_size, shuffle=True))
+    dataloaders.setdefault('test', DataLoader(datasets['test'], batch_size=cfg.util.test.batch_size, shuffle=False))
 
-    if cfg.TRAINING.PIPELINE == 'default':
+    if cfg.util.train.pipeline == 'default':
         train_default(train_iter=dataloaders['train'],
                       eval_iter=dataloaders['val'],
                       model=model,
                       criterion=criterion,
                       args=cfg)
 
-    if cfg.TRAINING.PIPELINE == 'arm':
-        domains = [int(domain) for domain in cfg.DATA.SOURCES]
+    if cfg.util.train.pipeline == 'arm':
+        domains = [int(domain) for domain in cfg.domain.sources]
         train_with_arm(domains=domains,
                        model=model,
                        criterion=criterion,
                        args=cfg)
 
-    model_name = f'best_model_{cfg.MODEL.CKPT_SUFFIX}.pth' if cfg.MODEL.CKPT_SUFFIX != '' else 'best_model.pth'
+    model_name = f'best_model_{cfg.model.suffix}.pth' if cfg.model.suffix != '' else 'best_model.pth'
 
-    for testing_pipeline in cfg.TESTING.PIPELINE:
+    for testing_pipeline in cfg.util.test.pipeline:
         if testing_pipeline == 'default':
             test_default(test_iter=dataloaders['test'],
-                         model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                         model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
                          args=cfg)
 
         if testing_pipeline == 'norm':
             test_with_adaptive_norm(test_iter=dataloaders['test'],
-                                    model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                                    model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
                                     args=cfg)
 
         if testing_pipeline == 'tent':
             test_with_tent(test_iter=dataloaders['test'],
-                           model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                           model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
                            args=cfg)
 
         if testing_pipeline == 'arm':
             test_with_arm(test_iter=dataloaders['test'],
-                          model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                          model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
                           args=cfg)
 
         if testing_pipeline == 'delta':
             test_with_delta(test_iter=dataloaders['test'],
-                            model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                            model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
                             args=cfg)
 
-        if testing_pipeline == 'divtent':
+        if testing_pipeline == 'division':
             test_with_data_division(test_iter=dataloaders['test'],
-                                    model_path=pathlib.Path(cfg.PATH.CKPT_PATH).joinpath(model_name),
+                                    model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
                                     args=cfg)
+
+
+if __name__ == '__main__':
+    main()

@@ -37,10 +37,10 @@ class EarlyStopping(object):
         model_name = 'best_model'
         if self.verbose:
             print(f'Validation Loss Decreased ({self.val_loss_min: .6f} -> {val_loss: .6f})')
-        if self.args.MODEL.CKPT_SUFFIX == '':
+        if self.args.model.suffix == '':
             model_name = f'{model_name}.pth'
         else:
-            model_name = f'{model_name}_{self.args.MODEL.CKPT_SUFFIX}.pth'
+            model_name = f'{model_name}_{self.args.model.suffix}.pth'
         path = pathlib.Path(self.save_path).joinpath(model_name)
         torch.save(model, path)
         self.val_loss_min = val_loss

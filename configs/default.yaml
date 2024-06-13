@@ -4,8 +4,12 @@ defaults:
   - domain: single
   - model: resnet
   - optim: adam
-  - util: training
-  - algorithm: tent
+  - util: default
+  - algorithm:
+    - tent
+    - arm
+    - delta
+    - division
 random_seed: 2024
 device: 'cuda'
 cuda_id: 0

@@ -158,8 +158,6 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
             tgt_w = -(torch.softmax(tgt_logit, dim=-1) * torch.log_softmax(tgt_logit, dim=-1)).sum(-1).mean(0)
             # weight = torch.Tensor([src_w, tgt_w])
             weight = torch.softmax(torch.Tensor([src_w, tgt_w]), dim=0)
-            print(weight)
-            # print(weight, src_logit.shape, tgt_logit.shape)
             # source_data *= weight[0]
             # target_data *= weight[1]
     return source_data, target_data, src_idx, tgt_idx, weight
@@ -181,16 +179,3 @@ def domain_merge(source_data, target_data, source_index, target_index):
             result[i] = target_data[t_idx]
             t_idx += 1
     return result.cuda()
-
-
-if __name__ == '__main__':
-    # c_data = data_concat(src_path=r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\data\TEP',
-    #                      mode=1, time_win=10, overlap=True)
-    # print(c_data.shape)
-
-    model = torch.load(r'../checkpoints/best_model.pth')
-    x = torch.randn((64, 1, 10, 50)).to('cuda')
-    print(model(x).shape)
-    # src_data, tgt_data = domain_division(model=model,
-    #                                      data=x,
-    #                                      use_entropy=True)

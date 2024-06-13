@@ -1,4 +1,10 @@
 name: 'ResNet'
 suffix: 'resnet'
+in_channels: 1
+num_block:
+  - 2
+  - 2
+  - 2
+  - 2
 num_classes: 10
 save_path: './checkpoints'

@@ -34,7 +34,7 @@ def conjugate_loss(outputs, num_classes=10, eps=6.0, temp=1.0):
     y_star = torch.squeeze(y_star)
 
     pseudo_prob = y_star
-    loss = torch.logsumexp(outputs, dim=1) - (pseudo_prob * outputs - eps * pseudo_prob * (1 - predictions)).sum(
-        dim=1)
+    loss = (torch.logsumexp(outputs, dim=1) -
+            (pseudo_prob * outputs - eps * pseudo_prob * (1 - predictions)).sum(dim=1))
 
     return loss
