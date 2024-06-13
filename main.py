@@ -16,8 +16,6 @@ from testing_pipeline import *
             config_path="./configs",
             config_name="default")
 def main(cfg: DictConfig):
-    # print(OmegaConf.to_yaml(cfg))
-
     torch.manual_seed(cfg.random_seed)
     torch.cuda.manual_seed(cfg.random_seed)
     torch.cuda.set_device(cfg.cuda_id)
