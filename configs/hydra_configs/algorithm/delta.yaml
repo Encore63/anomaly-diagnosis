@@ -1,0 +1,11 @@
+steps: 1
+norm_type: 'rn'
+optim_type: 'adam'
+loss_type: 'entropy'
+ent_w: False
+dot: 0.95
+old_prior: 0.95
+optim_lr: 0.00025
+optim_momentum: 0.9
+optim_wd: 0.
+class_num: 10

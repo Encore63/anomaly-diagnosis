@@ -1,0 +1,4 @@
+name: 'ResNet'
+suffix: 'resnet'
+num_classes: 10
+save_path: './checkpoints'

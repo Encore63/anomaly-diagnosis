@@ -1,0 +1,10 @@
+epochs: 50
+batch_size: 128
+label_smoothing: 0.0
+
+# choices: default, arm
+pipeline: 'default'
+
+# early stopping tool setting
+patience: 5
+delta: 0

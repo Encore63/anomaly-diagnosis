@@ -1,0 +1,4 @@
+# choices: arm_ll, arm_bn, arm_cml
+arm: 'arm_ll'
+context_channels: 1
+adapt_bn: True

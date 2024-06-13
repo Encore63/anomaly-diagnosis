@@ -1,0 +1,13 @@
+defaults:
+  - _self_
+  - dataset: tep
+  - domain: single
+  - model: resnet
+  - optim: adam
+  - util: training
+  - algorithm: tent
+random_seed: 2024
+device: 'cuda'
+cuda_id: 0
+log_flag: False
+log_path: './logs'
