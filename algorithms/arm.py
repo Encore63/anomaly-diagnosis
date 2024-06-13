@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 
 from torch import nn
 from models.mlp import MLP
-from models.resnet import resnet18
+from models.resnet import resnet
 from models.ctxnet import ContextNet
 
 from datasets.tep_dataset import TEPDataset
