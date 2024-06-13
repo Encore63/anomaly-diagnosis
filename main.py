@@ -14,7 +14,7 @@ from testing_pipeline import *
 
 @hydra.main(version_base=None,
             config_path="./configs",
-            config_name="default")
+            config_name="config")
 def main(cfg: DictConfig):
     torch.manual_seed(cfg.random_seed)
     torch.cuda.manual_seed(cfg.random_seed)

@@ -16,5 +16,6 @@ defaults:
 random_seed: 2024
 device: 'cuda'
 cuda_id: 0
+write_flag: False
 log_flag: False
 log_path: './logs'

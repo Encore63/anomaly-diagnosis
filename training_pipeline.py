@@ -18,7 +18,7 @@ def train_default(train_iter, eval_iter, model, criterion, args):
     log_dir = f'{args.log_path}_{args.model.suffix}' \
         if args.model.suffix != '' \
         else f'{args.log_path}'
-    writer = SummaryWriter(log_dir=log_dir)
+    writer = SummaryWriter(log_dir=log_dir) if args.write_flag else None
     optimizer = Adam(model.parameters(), lr=args.optim.learning_rate)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=args.optim.step_size)
     stopping_tool = EarlyStopping(args, save_path=args.model.save_path, verbose=True,
@@ -45,8 +45,9 @@ def train_default(train_iter, eval_iter, model, criterion, args):
             accuracy = torch.eq(torch.argmax(output, 1), labels).float().mean()
             acc_meter.update(accuracy, args.util.train.batch_size)
 
-            writer.add_scalar(tag='training loss', scalar_value=loss.item(), global_step=global_train_step)
-            writer.add_scalar(tag='training accuracy', scalar_value=accuracy, global_step=global_train_step)
+            if args.write_flag:
+                writer.add_scalar(tag='training loss', scalar_value=loss.item(), global_step=global_train_step)
+                writer.add_scalar(tag='training accuracy', scalar_value=accuracy, global_step=global_train_step)
             train_loop.set_description('Train [{}/{}]'.format('{: <2d}'.format(epoch + 1), args.util.train.epochs))
             train_loop.set_postfix(acc='{:.4f}'.format(acc_meter.avg),
                                    loss='{:.4f}'.format(loss_meter.avg))
@@ -69,8 +70,9 @@ def train_default(train_iter, eval_iter, model, criterion, args):
             accuracy = torch.eq(torch.argmax(output, 1), labels).float().mean()
             acc_meter.update(accuracy, args.util.train.batch_size)
 
-            writer.add_scalar(tag='validation loss', scalar_value=loss.item(), global_step=global_eval_step)
-            writer.add_scalar(tag='validation accuracy', scalar_value=accuracy, global_step=global_eval_step)
+            if args.write_flag:
+                writer.add_scalar(tag='validation loss', scalar_value=loss.item(), global_step=global_eval_step)
+                writer.add_scalar(tag='validation accuracy', scalar_value=accuracy, global_step=global_eval_step)
             eval_loop.set_description('Eval  [{}/{}]'.format('{: <2d}'.format(epoch + 1), args.util.train.epochs))
             eval_loop.set_postfix(acc='{:.4f}'.format(acc_meter.avg),
                                   loss='{:.4f}'.format(loss_meter.avg))
@@ -83,7 +85,8 @@ def train_default(train_iter, eval_iter, model, criterion, args):
             print('Early Stopping ...')
             break
 
-    writer.close()
+    if args.write_flag:
+        writer.close()
 
 
 def train_with_arm(domains, model, criterion, args):
