@@ -4,7 +4,7 @@ import warnings
 from torch import nn
 from models.cnn import CNN
 from models.mrfgcn import MrfGCN
-from models.resnet import resnet18
+from models.resnet import resnet
 from torchinfo import summary
 from einops import rearrange, reduce, repeat
 

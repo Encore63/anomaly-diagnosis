@@ -6,10 +6,10 @@ from algorithms.norm import Norm
 from algorithms.tent import Tent
 from algorithms.delta import DELTA
 from algorithms.divtent import DivTent
-from datasets.tep_dataset import TEPDataset
 from utils.hook_manager import HookManager
-from torch.utils.data.dataloader import DataLoader
 from utils.visualize import plot_embedding
+from datasets.tep_dataset import TEPDataset
+from torch.utils.data.dataloader import DataLoader
 
 
 class Analyze(object):
