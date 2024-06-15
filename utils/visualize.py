@@ -1,12 +1,10 @@
-import torch
 import itertools
 import numpy as np
 
 from sklearn.manifold import TSNE
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
-from datasets.tep_dataset import TEPDataset
-from torch.utils.data.dataloader import DataLoader
 
 
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues) -> None:
@@ -54,58 +52,31 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.show()
 
 
-def plot_embedding(data, label, method='t-SNE', title='t-SNE') -> plt.Figure:
-    print('Plotting embeddings...')
-    if method == 'pca':
-        dim_reduction_tool = PCA(n_components=2, random_state=0)
-        title = 'pca'
-    else:
-        dim_reduction_tool = TSNE(n_components=2, init='pca', random_state=0)
-    data = dim_reduction_tool.fit_transform(data)
+def plot_embedding(data, label=None, num_classes=10, perplexity=30.0, title='t-SNE') -> plt.Figure:
+    print('Plotting embeddings ...')
+    tsne = TSNE(n_components=2, init='pca', random_state=0, perplexity=perplexity)
+    if len(data.shape) > 2:
+        data = data.reshape(data.shape[0], -1)
+    data = tsne.fit_transform(data)
 
+    # Min-max Scaler
     x_min, x_max = np.min(data, 0), np.max(data, 0)
-    # Min-max 归一化
     data = (data - x_min) / (x_max - x_min)
 
-    fig = plt.figure()
+    if label is None:
+        import warnings
+        warnings.filterwarnings("ignore")
+
+        kmeans = KMeans(n_clusters=num_classes, random_state=0, n_init=10)
+        label = kmeans.fit_predict(data)
+        label = np.array(label, dtype=np.float32)
+
+    size = np.ones_like(label) * 100
+
+    fig = plt.figure(figsize=(10, 7))
     ax = plt.subplot(111)
-    for i in range(data.shape[0]):
-        plt.text(data[i, 0], data[i, 1], str(label[i]),
-                 color=plt.cm.Set1(label[i] / 10.),
-                 fontdict={'weight': 'bold', 'size': 9})
+    plt.scatter(data[:, 0], data[:, 1], s=size,
+                color=plt.cm.Set1(label / 10.),
+                marker='o')
     plt.title(title)
     return fig
-
-
-if __name__ == '__main__':
-    model = torch.load(r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\checkpoints\best_model_conv-former.pth')
-    dataset = TEPDataset(src_path=r'../data/TEP',
-                         split_ratio={'train': 0.7, 'eval': 0.3},
-                         data_domains={'source': 1, 'target': 3},
-                         dataset_mode='test',
-                         data_dim=3,
-                         transform=None,
-                         overlap=False)
-    data_iter = DataLoader(dataset, batch_size=128, shuffle=False)
-    for x, y in data_iter:
-        if torch.cuda.is_available():
-            x = x.to(torch.device('cuda'))
-        logit = model(x).to(torch.device('cuda'))
-        logit = logit.detach().cpu().numpy()
-        logit = np.argmax(logit, axis=1)
-        print(logit.shape)
-
-        labels = []
-        for item in y:
-            labels.extend([item] * x.shape[1])
-        x = np.array(x.cpu()).reshape(-1, x.shape[-1])
-        labels = np.array(labels)
-        fig_prior = plot_embedding(x, labels)
-        plt.show()
-
-        labels = []
-        for item in logit:
-            labels.extend([item] * x.shape[1])
-        fig_poster = plot_embedding(x, labels)
-        plt.show()
-        break

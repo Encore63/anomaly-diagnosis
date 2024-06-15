@@ -182,7 +182,7 @@ class LiConvFormer(nn.Module):
         self.dim = dim
 
         if use_residual:
-            resnet_model = resnet18(in_channel, out_channel)
+            resnet_model = resnet(in_channel, out_channel)
             self.in_layer = ResNetFeature(resnet_model, layer_bound=-1, flatten=False)
             self.in_layer.features.append(nn.Flatten())
         else:
@@ -210,8 +210,6 @@ class LiConvFormer(nn.Module):
 
 
 if __name__ == '__main__':
-    data = torch.randn((1, 50, ))
+    data = torch.randn((1, 50, 10))
     model = LiConvFormer(use_residual=False, in_channel=50, out_channel=10)
-    # model = ModelFeature(model, flatten=False)
-    print(model(data).shape)
-    # summary(model, input_data=data)
+    summary(model, input_data=data)

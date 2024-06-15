@@ -40,7 +40,7 @@ class EarlyStopping(object):
         if self.args.model.suffix == '':
             model_name = f'{model_name}.pth'
         else:
-            model_name = f'{model_name}_{self.args.model.suffix}.pth'
+            model_name = f'{model_name}_{self.args.model.suffix}_{self.args.domain.source}.pth'
         path = pathlib.Path(self.save_path).joinpath(model_name)
         torch.save(model, path)
         self.val_loss_min = val_loss

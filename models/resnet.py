@@ -167,4 +167,3 @@ if __name__ == '__main__':
     model = resnet(in_channels=1, num_classes=10)
     data = torch.randn((128, 1, 32, 50))
     summary(model, input_data=data)
-    # print(model(data).shape)

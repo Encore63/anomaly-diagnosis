@@ -83,7 +83,9 @@ def main(cfg: DictConfig):
                        criterion=criterion,
                        args=cfg)
 
-    model_name = f'best_model_{cfg.model.suffix}.pth' if cfg.model.suffix != '' else 'best_model.pth'
+    model_name = f'best_model_{cfg.model.suffix}_{cfg.domain.source}.pth' \
+        if cfg.model.suffix != '' \
+        else 'best_model.pth'
 
     for testing_pipeline in cfg.util.test.pipeline:
         if testing_pipeline == 'default':

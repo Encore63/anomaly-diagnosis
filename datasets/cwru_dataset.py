@@ -11,8 +11,9 @@ from sklearn.model_selection import train_test_split
 
 class SequenceDataset(Dataset):
 
-    def __init__(self, list_data, test=False, transform=None):
+    def __init__(self, list_data, test=False, data_dim=2, transform=None):
         self.test = test
+        self.data_dim = data_dim
         if self.test:
             self.seq_data = list_data['data'].tolist()
         else:
@@ -32,11 +33,15 @@ class SequenceDataset(Dataset):
         if self.test:
             seq = self.seq_data[item]
             seq = self.transforms(seq)
+            for _ in range(self.data_dim - len(seq.shape)):
+                seq = np.expand_dims(seq, 0)
             return seq, item
         else:
             seq = self.seq_data[item]
             label = self.labels[item]
             seq = self.transforms(seq)
+            for _ in range(self.data_dim - len(seq.shape)):
+                seq = np.expand_dims(seq, 0)
             return seq, label
 
 
@@ -52,9 +57,9 @@ data_name = {
     3: ["100.mat", "108.mat", "121.mat", "133.mat", "172.mat", "188.mat", "200.mat", "212.mat", "225.mat",
         "237.mat"]}  # 1730rpm
 
-dataset_name = ["12k Drive End Bearing Fault Data", "12k Fan End Bearing Fault Data",
-                "48k Drive End Bearing Fault Data",
-                "Normal Baseline Data"]
+dataset_name = ["12k_Drive_End_Bearing_Fault_Data", "12k_Fan_End_Bearing_Fault_Data",
+                "48k_Drive_End_Bearing_Fault_Data",
+                "Normal_Baseline_Data"]
 axis = ["_DE_time", "_FE_time", "_BA_time"]
 
 label = [i for i in range(0, 10)]
@@ -73,14 +78,14 @@ def get_files(root, N):  # N为转速，N传进来是一个代表负载
                 path1 = os.path.join(root, dataset_name[3], data_name[N[k]][n])
             else:
                 path1 = os.path.join(root, dataset_name[0], data_name[N[k]][n])
-            data1, lab1 = data_load(path1, data_name[N[k]][n], label=label[n])
+            data1, lab1 = data_load(path1, data_name[N[k]][n], _label=label[n])
             data += data1
             lab += lab1
 
     return [data, lab]
 
 
-def data_load(filename, axis_name, label):
+def data_load(filename, axis_name, _label):
     """
     This function is mainly used to generate test data and training data.
     filename:Data location
@@ -97,7 +102,7 @@ def data_load(filename, axis_name, label):
     start, end = 0, signal_size
     while end <= fl.shape[0]:
         data.append(fl[start:end])
-        lab.append(label)
+        lab.append(_label)
         start += signal_size
         end += signal_size
 
@@ -108,11 +113,12 @@ class CWRUDataset(object):
     num_classes = 10
     input_channel = 1
 
-    def __init__(self, data_dir, transfer_task, normalize_type="0-1"):
+    def __init__(self, data_dir, transfer_task, normalize_type="0-1", data_dim=2):
         self.data_dir = data_dir
         self.source_N = transfer_task[0]
         self.target_N = transfer_task[1]
         self.normalize_type = normalize_type
+        self.data_dim = data_dim
         self.data_transforms = {
             'train': Compose([
                 Reshape(),
@@ -138,38 +144,34 @@ class CWRUDataset(object):
             list_data = get_files(self.data_dir, self.source_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
             train_pd, val_pd = train_test_split(data_pd, test_size=0.2, random_state=40, stratify=data_pd["label"])
-            source_train = SequenceDataset(list_data=train_pd, transform=self.data_transforms['train'])
-            source_val = SequenceDataset(list_data=val_pd, transform=self.data_transforms['val'])
+            source_train = SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
+            source_val = SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
 
             # get target train and val
             list_data = get_files(self.data_dir, self.target_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
             train_pd, val_pd = train_test_split(data_pd, test_size=0.2, random_state=40, stratify=data_pd["label"])
-            target_train = SequenceDataset(list_data=train_pd, transform=self.data_transforms['train'])
-            target_val = SequenceDataset(list_data=val_pd, transform=self.data_transforms['val'])
+            target_train = SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
+            target_val = SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
             return source_train, source_val, target_train, target_val
         else:
             # get source train and val
             list_data = get_files(self.data_dir, self.source_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
             train_pd, val_pd = train_test_split(data_pd, test_size=0.2, random_state=40, stratify=data_pd["label"])
-            source_train = SequenceDataset(list_data=train_pd, transform=self.data_transforms['train'])
-            source_val = SequenceDataset(list_data=val_pd, transform=self.data_transforms['val'])
+            source_train = SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
+            source_val = SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
 
             # get target train and val
             list_data = get_files(self.data_dir, self.target_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
-            target_val = SequenceDataset(list_data=data_pd, transform=self.data_transforms['val'])
+            target_val = SequenceDataset(list_data=data_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
             return source_train, source_val, target_val
 
 
 if __name__ == '__main__':
-    cwru_dataset = CWRUDataset(data_dir=r'../data/CWRU', transfer_task=[0, 1])
-    train, val, test = cwru_dataset.data_split()
-    dataloader = {}
-    dataloader.setdefault('source_train', DataLoader(train, batch_size=128, shuffle=True))
-    dataloader.setdefault('source_val', DataLoader(val, batch_size=128, shuffle=True))
-    dataloader.setdefault('target_val', DataLoader(test, batch_size=64, shuffle=False))
-
-    for i, (x, y) in enumerate(dataloader['source_train']):
-        print(x.shape, y)
+    from easydict import EasyDict as eDict
+    dataset_tool = CWRUDataset(data_dir=root, transfer_task=[[0], [1]], normalize_type="0-1", data_dim=2)
+    source, target = eDict(d={'train': None, 'val': None}), eDict(d={'train': None, 'val': None})
+    source['train'], source['val'], target['train'], target['val'] = dataset_tool.data_split(transfer_learning=True)
+    print(source.val[0][0].shape)
