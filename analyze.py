@@ -53,6 +53,9 @@ class Analyze(object):
         for x, y in data_iter:
             if torch.cuda.is_available():
                 x = x.to(torch.device('cuda'))
+            if self.algorithm in {'tent', 'delta', 'division'}:
+                # update model parameters
+                self.model(x)
             embeddings = hook_manager.get_activations(x)
             data = embeddings[self.layer_name].cpu()
             plot_embedding(data, y, title=title, **kwargs)
@@ -64,10 +67,10 @@ if __name__ == '__main__':
     pretrained_model = torch.load(r'./checkpoints/best_model_resnet_1.pth')
     tep_dataset = TEPDataset(src_path=r'./data/TEP',
                              split_ratio={'train': 0.7, 'eval': 0.1},
-                             data_domains={'source': 1, 'target': 1},
+                             data_domains={'source': 1, 'target': 3},
                              dataset_mode='test',
                              data_dim=4,
                              transform=None,
                              overlap=True)
-    analyze = Analyze(dataset=tep_dataset, model=pretrained_model, layer_name='conv5_x', algorithm=None)
+    analyze = Analyze(dataset=tep_dataset, model=pretrained_model, layer_name='conv5_x', algorithm='tent')
     analyze.embedding_analyze()
