@@ -75,6 +75,6 @@ def plot_embedding(data, label=None, num_classes=10, perplexity=30.0, title='t-S
 
     fig = plt.figure(figsize=(10, 7))
     ax = plt.subplot(111)
-    plt.scatter(data[:, 0], data[:, 1], s=size, color=plt.cm.Set3(label), marker='o')
+    plt.scatter(data[:, 0], data[:, 1], s=size, color=plt.cm.Set3(label), marker='.')
     plt.title(title)
     return fig
