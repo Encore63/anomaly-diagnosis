@@ -64,7 +64,7 @@ if __name__ == '__main__':
     pretrained_model = torch.load(r'./checkpoints/best_model_resnet_1.pth')
     tep_dataset = TEPDataset(src_path=r'./data/TEP',
                              split_ratio={'train': 0.7, 'eval': 0.1},
-                             data_domains={'source': 1, 'target': 5},
+                             data_domains={'source': 1, 'target': 1},
                              dataset_mode='test',
                              data_dim=4,
                              transform=None,
