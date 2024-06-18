@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+from einops import rearrange
 from torchinfo import summary
 from torch.nn import functional as F
 from .resnet import resnet, ResNetFeature
@@ -29,11 +30,11 @@ class ConvBNReLU(nn.Sequential):
 class LayerNorm(nn.Module):
     def __init__(self, dim):
         super(LayerNorm, self).__init__()
-        self.layernorm = nn.LayerNorm(dim)
+        self.layer_norm = nn.LayerNorm(dim)
 
     def forward(self, x):
         x = x.transpose(-1, -2)
-        x = self.layernorm(x)
+        x = self.layer_norm(x)
         return x.transpose(-1, -2)
 
 
@@ -56,7 +57,7 @@ class Embedding(nn.Module):
         super(Embedding, self).__init__()
         d_hidden = d_out // n
         self.conv1 = nn.Conv1d(d_in, d_hidden, 1, 1)
-        self.sconv = nn.ModuleList([
+        self.s_conv = nn.ModuleList([
             nn.Conv1d(d_hidden, d_hidden, 2 * i + 2 * stride - 1,
                       stride=stride, padding=stride + i - 1, groups=d_hidden, bias=False)
             for i in range(n)])
@@ -66,8 +67,8 @@ class Embedding(nn.Module):
     def forward(self, x):
         signals = []
         x = self.conv1(x)
-        for sconv in self.sconv:
-            signals.append(sconv(x))
+        for s_conv in self.s_conv:
+            signals.append(s_conv(x))
         x = torch.cat(signals, dim=1)
         return self.act_bn(x)
 
@@ -201,6 +202,7 @@ class LiConvFormer(nn.Module):
         self.out_layer = nn.Linear(8 * dim, out_channel)
 
     def forward(self, x):
+        x = rearrange(x, 'B E L -> B L E')
         x = self.in_layer(x)
         if isinstance(self.in_layer, ResNetFeature):
             x = x.reshape(x.shape[0], self.dim, -1)
@@ -210,6 +212,6 @@ class LiConvFormer(nn.Module):
 
 
 if __name__ == '__main__':
-    data = torch.randn((1, 50, 10))
+    data = torch.randn((1, 10, 50))
     model = LiConvFormer(use_residual=False, in_channel=50, out_channel=10)
     summary(model, input_data=data)

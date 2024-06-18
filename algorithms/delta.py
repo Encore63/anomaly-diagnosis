@@ -3,11 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from codecs import BOM_BE
 from copy import deepcopy
-from curses import noecho
-from pickle import NEWOBJ_EX
-from utils.sam import SAM
+from algorithms.comp.sam import SAM
 
 
 # inspired by https://github.com/bethgelab/robustness/tree/aa0a6798fe3973bae5f47561721b59b39f126ab7

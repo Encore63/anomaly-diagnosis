@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from tqdm import tqdm
 from utils.average_meter import AverageMeter
-from algorithms import tent, norm, arm, delta, divtent
+from algorithms import tent, norm, delta, divtent
 
 
 def test_default(test_iter, model_path, args):
@@ -76,11 +76,10 @@ def test_with_arm(test_iter, model_path, args):
 
 
 def test_with_data_division(test_iter, model_path, args):
-    from utils.sam import SAM
-
     model = torch.load(model_path).to(args.device)
     model = divtent.configure_model(model)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.optim.learning_rate)
+    params, param_names = divtent.collect_params(model)
+    optimizer = torch.optim.Adam(params, lr=args.optim.learning_rate)
     # optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
     model = divtent.DivTent(model, optimizer, steps=1,
                             use_entropy=args.algorithm.use_entropy,
@@ -98,7 +97,7 @@ def test_with_data_division(test_iter, model_path, args):
 
 
 def test_with_delta(test_iter, model_path, args):
-    from utils.data_utils import domain_division, domain_merge
+    from utils.data_utils import domain_division
 
     old_model = torch.load(model_path).to(args.device)
     model = delta.DELTA(args.algorithm, old_model)

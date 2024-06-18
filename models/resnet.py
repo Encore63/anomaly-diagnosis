@@ -32,7 +32,7 @@ class BasicBlock(nn.Module):
         # shortcut
         self.shortcut = nn.Sequential()
 
-        # the shortcut output dimension is not the same with residual function
+        # the shortcut output dimension is different with residual function
         # use 1*1 convolution to match the dimension
         if stride != 1 or in_channels != BasicBlock.expansion * out_channels:
             self.shortcut = nn.Sequential(
@@ -76,7 +76,6 @@ class BottleNeck(nn.Module):
 
 
 class ResNet(nn.Module):
-
     def __init__(self, in_channels, block, num_block, num_classes=10):
         super().__init__()
 

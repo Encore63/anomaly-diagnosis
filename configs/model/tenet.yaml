@@ -1,1 +1,4 @@
+name: 'TENet'
+suffix: 'tenet'
 num_classes: 10
+save_path: './checkpoints'

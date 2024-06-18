@@ -1,2 +1,6 @@
+name: 'ConvFormer'
+suffix: 'conv-former'
 use_residual: False
+in_channels: 50
 num_classes: 10
+save_path: './checkpoints'

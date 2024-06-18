@@ -2,8 +2,8 @@ import torch.jit
 import torch.nn as nn
 
 from copy import deepcopy
-from utils.sam import SAM
-from utils.loss import tsallis_entropy, conjugate_loss
+from algorithms.comp.sam import SAM
+from utils.loss import conjugate_loss
 from utils.data_utils import domain_division, domain_merge
 
 
@@ -148,7 +148,7 @@ def collect_params(model):
     params = []
     names = []
     for nm, m in model.named_modules():
-        if isinstance(m, nn.BatchNorm2d):
+        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             for np, p in m.named_parameters():
                 if np in ['weight', 'bias']:  # weight is scale, bias is shift
                     params.append(p)

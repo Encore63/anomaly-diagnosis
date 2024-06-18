@@ -33,7 +33,7 @@ def main(cfg: DictConfig):
         model = CNN(in_channels=cfg.dataset.time_window).to(cfg.device)
     elif cfg.model.name == 'ConvFormer':
         model = LiConvFormer(use_residual=cfg.model.use_residual,
-                             in_channel=cfg.dataset.time_window,
+                             in_channel=cfg.model.in_channels,
                              out_channel=cfg.model.num_classes).to(cfg.device)
     else:
         model = resnet(in_channels=cfg.model.in_channels,

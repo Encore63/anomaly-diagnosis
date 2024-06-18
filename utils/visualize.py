@@ -72,6 +72,7 @@ def plot_embedding(data, label=None, num_classes=10, perplexity=30.0, title='t-S
         label = np.array(label, dtype=np.float32)
 
     size = np.ones_like(label) * 100
+    print(data.shape)
 
     fig = plt.figure(figsize=(10, 7))
     ax = plt.subplot(111)
