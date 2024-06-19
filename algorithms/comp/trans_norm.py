@@ -111,13 +111,13 @@ class _TransNorm(Module):
             elif strict:
                 missing_keys.append(key)
 
-    def forward(self, input):
+    def forward(self, input, domain_idx):
         self._check_input_dim(input)
         if self.training:  # train mode
             # 1. Domain-Specific Mean and Variance.
-            batch_size = input.size()[0] // 2
-            input_source = input[:batch_size]
-            input_target = input[batch_size:]
+            # batch_size = input.size()[0] // 2
+            input_source = input[domain_idx['source']]
+            input_target = input[domain_idx['target']]
 
             # 2. Domain Sharing Gamma and Beta.
             z_source = F.batch_norm(

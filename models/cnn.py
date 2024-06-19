@@ -48,6 +48,10 @@ class CNN(nn.Module):
 
 
 if __name__ == '__main__':
+    from algorithms import divtent
     data = torch.rand((1, 10, 50))
     model = CNN()
+    mods = divtent.find_bn_layer(model)
+    for parent, name, child in mods:
+        setattr(parent, name, child)
     summary(model, input_data=data)

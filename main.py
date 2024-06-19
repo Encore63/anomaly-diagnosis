@@ -7,6 +7,7 @@ from utils.logger import save_log
 from models.resnet import resnet
 from models.tenet import TENet, ReTENet
 from models.cnn import CNN
+from models.dagcn import DAGCN
 from models.convformer import LiConvFormer
 from training_pipeline import *
 from testing_pipeline import *
@@ -35,6 +36,10 @@ def main(cfg: DictConfig):
         model = LiConvFormer(use_residual=cfg.model.use_residual,
                              in_channel=cfg.model.in_channels,
                              out_channel=cfg.model.num_classes).to(cfg.device)
+    elif cfg.model.name == 'DAGCN':
+        model = DAGCN(in_channels=cfg.model.in_channels,
+                      num_classes=cfg.model.num_classes,
+                      pretrained=cfg.model.pretrained).to(cfg.device)
     else:
         model = resnet(in_channels=cfg.model.in_channels,
                        num_classes=cfg.model.num_classes,

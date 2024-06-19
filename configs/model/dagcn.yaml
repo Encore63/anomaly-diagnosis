@@ -1,0 +1,6 @@
+name: 'DAGCN'
+suffix: 'dagcn'
+in_channels: 50
+num_classes: 10
+pretrained: False
+save_path: './checkpoints'

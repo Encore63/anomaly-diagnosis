@@ -4,24 +4,8 @@ import torch.nn as nn
 from copy import deepcopy
 from algorithms.comp.sam import SAM
 from utils.loss import conjugate_loss
+from algorithms.comp import trans_norm
 from utils.data_utils import domain_division, domain_merge
-
-
-class WeightedBatchNorm2d(nn.Module):
-    def __init__(self, num_features, weight=None, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True):
-        super(WeightedBatchNorm2d, self).__init__()
-        self.bn = nn.BatchNorm2d(num_features, eps, momentum, affine, track_running_stats)
-        if weight is not None:
-            # assert weight.shape[0] == num_features
-            self.weight = nn.Parameter(weight)
-        else:
-            self.register_parameter('weight', None)
-
-    def forward(self, x):
-        if self.weight is not None:
-            x = self.weight * x
-        x = self.bn(x)
-        return x
 
 
 @torch.enable_grad()
@@ -173,28 +157,50 @@ def load_model_and_optimizer(model, optimizer, model_state, optimizer_state):
     optimizer.load_state_dict(optimizer_state)
 
 
-def configure_model(model, freeze=False):
+def find_bn_layer(parent):
+    replace_mods = []
+    if parent is None:
+        return []
+    for name, child in parent.named_children():
+        if isinstance(child, nn.BatchNorm2d):
+            module = trans_norm.TransNorm2d(child.num_features)
+            replace_mods.append((parent, name, module))
+        elif isinstance(child, nn.BatchNorm1d):
+            module = trans_norm.TransNorm1d(child.num_features)
+            replace_mods.append((parent, name, module))
+        else:
+            replace_mods.extend(find_bn_layer(child))
+    return replace_mods
+
+
+def configure_model(model, freeze=False, norm_type='bn'):
     """
     Configure model for use with tent.
     """
-    # train mode, because tent optimizes the model to minimize entropy
-    model.train()
-    # disable grad, to (re-)enable only what tent updates
-    model.requires_grad_(False)
-    # configure norm for tent updates: enable grad + force batch statistics
-    for m in model.modules():
-        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
-            m.requires_grad_(True)
-            if freeze:
-                model.eval()
-                m.training = False
-            else:
-                m.training = True
-                # force use of batch stats in train and eval modes
-                m.track_running_stats = False
-                m.running_mean = None
-                m.running_var = None
-    return model
+    if norm_type == 'tn':
+        replace_mods = find_bn_layer(model)
+        for (parent, name, child) in replace_mods:
+            setattr(parent, name, child)
+        return model
+    else:
+        # train mode, because tent optimizes the model to minimize entropy
+        model.train()
+        # disable grad, to (re-)enable only what tent updates
+        model.requires_grad_(False)
+        # configure norm for tent updates: enable grad + force batch statistics
+        for m in model.modules():
+            if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
+                m.requires_grad_(True)
+                if freeze:
+                    model.eval()
+                    m.training = False
+                else:
+                    m.training = True
+                    # force use of batch stats in train and eval modes
+                    m.track_running_stats = False
+                    m.running_mean = None
+                    m.running_var = None
+        return model
 
 
 def check_model(model):

@@ -5,6 +5,7 @@ from torch import nn
 from models.cnn import CNN
 from models.mrfgcn import MrfGCN
 from models.resnet import resnet
+from einops import rearrange
 from torchinfo import summary
 from einops import rearrange, reduce, repeat
 
@@ -23,6 +24,7 @@ class DAGCN(nn.Module):
         )
 
     def forward(self, x):
+        x = rearrange(x, 'B L E -> B E L')
         x1 = self.model_cnn(x)
         x2 = self.model_GCN(x1)
         output = self.classifier(x2)
@@ -31,7 +33,7 @@ class DAGCN(nn.Module):
 
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
-    data = torch.rand((32, 10, 50)).cuda()
-    model = DAGCN().cuda()
+    data = torch.rand((32, 50, 30)).cuda()
+    model = DAGCN(in_channels=50).cuda()
     summary(model, input_data=data)
     # print(model(data).shape)
