@@ -77,7 +77,6 @@ def test_with_arm(test_iter, model_path, args):
 
 def test_with_data_division(test_iter, model_path, args):
     model = torch.load(model_path).to(args.device)
-    model = divtent.configure_model(model)
     params, param_names = divtent.collect_params(model)
     optimizer = torch.optim.Adam(params, lr=args.optim.learning_rate)
     # optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)

@@ -9,13 +9,14 @@ from torch.nn.modules.module import Module
 
 class _TransNorm(Module):
 
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True):
+    def __init__(self, num_features, domain_idx, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True):
         super(_TransNorm, self).__init__()
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
+        self.domain_idx = domain_idx
         if self.affine:
             self.weight = Parameter(torch.Tensor(num_features))
             self.bias = Parameter(torch.Tensor(num_features))
@@ -111,13 +112,13 @@ class _TransNorm(Module):
             elif strict:
                 missing_keys.append(key)
 
-    def forward(self, input, domain_idx):
+    def forward(self, input):
         self._check_input_dim(input)
         if self.training:  # train mode
             # 1. Domain-Specific Mean and Variance.
             # batch_size = input.size()[0] // 2
-            input_source = input[domain_idx['source']]
-            input_target = input[domain_idx['target']]
+            input_source = input[self.domain_idx['source']]
+            input_target = input[self.domain_idx['target']]
 
             # 2. Domain Sharing Gamma and Beta.
             z_source = F.batch_norm(

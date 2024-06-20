@@ -85,9 +85,9 @@ class ResNet(nn.Module):
             nn.Conv2d(in_channels, 64, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
-        # we use a different inputsize than the original paper
+        # we use a different input size than the original paper
         # so conv2_x's stride is 1
-        self.attn = Transformer(dim=50, depth=1, heads=5, mlp_dim=64, dropout=0.1)
+        # self.attn = Transformer(dim=50, depth=1, heads=5, mlp_dim=64, dropout=0.1)
         self.conv2_x = self._make_layer(block, 64, num_block[0], 1)
         self.conv3_x = self._make_layer(block, 128, num_block[1], 2)
         self.conv4_x = self._make_layer(block, 256, num_block[2], 2)
@@ -163,6 +163,10 @@ def resnet(in_channels, num_classes, num_block=(2, 2, 2, 2)):
 
 
 if __name__ == '__main__':
+    from pprint import pprint
+    from algorithms import divtent
     model = resnet(in_channels=1, num_classes=10)
-    data = torch.randn((128, 1, 32, 50))
-    summary(model, input_data=data)
+    data = torch.randn((4, 1, 10, 50))
+    divtent.replace_bn_layer(model, {'source': [0, 1], 'target': [2, 3]})
+    pprint(dict(model.named_modules()))
+    # summary(model, input_data=data)

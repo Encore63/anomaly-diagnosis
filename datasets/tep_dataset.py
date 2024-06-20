@@ -75,12 +75,12 @@ class TEPDataset(Dataset):
 
 if __name__ == '__main__':
     dataset = TEPDataset(src_path=r'../data/TEP',
-                         split_ratio={'train': 0.7, 'eval': 0.3},
-                         data_domains={'source': 1, 'target': 3},
+                         split_ratio={'train': 0.7, 'eval': 0.2},
+                         data_domains={'source': 1, 'target': 2},
                          dataset_mode='test',
-                         data_dim=3,
+                         data_dim=4,
                          transform=None,
-                         overlap=False)
+                         overlap=True)
     data_iter = DataLoader(dataset, batch_size=128, shuffle=True)
     for x, y in data_iter:
         print(x.shape, y.shape)

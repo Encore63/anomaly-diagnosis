@@ -112,8 +112,6 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
     :param weighting: 是否使用权重
     :return: 经划分后的数据集
     """
-    from scipy.stats import entropy
-
     transfer = False
     batch_size = data.shape[0]
     with torch.no_grad():
@@ -150,7 +148,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
         data = data.unsqueeze(dim=1)
     source_data = data[src_idx]
     target_data = data[tgt_idx]
-    weight = torch.Tensor([1, 1])
+    weight = torch.Tensor([1., 1.])
     if weighting:
         with torch.no_grad():
             src_logit, tgt_logit = model(source_data), model(target_data)
@@ -160,7 +158,8 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
             weight = torch.softmax(torch.Tensor([src_w, tgt_w]), dim=0)
             # source_data *= weight[0]
             # target_data *= weight[1]
-    return source_data, target_data, src_idx, tgt_idx, weight
+    return (source_data.detach(), target_data.detach(),
+            src_idx, tgt_idx, weight)
 
 
 def domain_merge(source_data, target_data, source_index, target_index):
