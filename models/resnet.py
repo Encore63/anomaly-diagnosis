@@ -128,6 +128,7 @@ class ResNet(nn.Module):
         return x
 
     def forward(self, x):
+        # x = rearrange(x, 'B P L E -> B L P E')
         output = self.conv1(x)
         # output = self._forward_attn(output)
         output = self.conv2_x(output)
@@ -163,10 +164,8 @@ def resnet(in_channels, num_classes, num_block=(2, 2, 2, 2)):
 
 
 if __name__ == '__main__':
-    from pprint import pprint
-    from algorithms import divtent
+    from algorithms.divtent import replace_tbr_layer
     model = resnet(in_channels=1, num_classes=10)
-    data = torch.randn((4, 1, 10, 50))
-    divtent.replace_bn_layer(model, {'source': [0, 1], 'target': [2, 3]})
-    pprint(dict(model.named_modules()))
-    # summary(model, input_data=data)
+    replace_tbr_layer(model, 0.95)
+    data = torch.randn((128, 1, 10, 50))
+    summary(model, input_data=data)

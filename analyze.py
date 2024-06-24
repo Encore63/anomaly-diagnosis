@@ -7,6 +7,7 @@ from algorithms import tent
 from algorithms import divtent
 from algorithms.norm import Norm
 from algorithms.delta import DELTA
+from torch.functional import F
 from utils.hook_manager import HookManager
 from utils.visualize import plot_embedding
 from datasets.tep_dataset import TEPDataset
@@ -26,6 +27,25 @@ class Analyze(object):
         with hydra.initialize(version_base=None, config_path='./configs', job_name='analyze'):
             global_configs = hydra.compose(config_name='config')
         return global_configs
+
+    # @staticmethod
+    # def kl_divergence(source, target, args):
+    #     domains = args.dataset.domains
+    #     src_data = TEPDataset(src_path=r'./data/TEP',
+    #                           split_ratio={'train': 0.7, 'eval': 0.1},
+    #                           data_domains={'source': 1, 'target': source},
+    #                           dataset_mode='test',
+    #                           data_dim=4,
+    #                           transform=None,
+    #                           overlap=True)
+    #     tgt_data = TEPDataset(src_path=r'./data/TEP',
+    #                           split_ratio={'train': 0.7, 'eval': 0.1},
+    #                           data_domains={'source': 1, 'target': target},
+    #                           dataset_mode='test',
+    #                           data_dim=4,
+    #                           transform=None,
+    #                           overlap=True)
+    #     F.kl_div(..., ...)
 
     def _init_model(self, args):
         if not self.algorithm:
@@ -65,19 +85,21 @@ class Analyze(object):
                 self.model(x)
             embeddings = hook_manager.get_activations(x)
             data = embeddings[self.layer_name].cpu()
+            print(data.shape, y.shape)
             plot_embedding(data, y, title=title, **kwargs)
             plt.show()
         hook_manager.remove_hooks()
 
 
 if __name__ == '__main__':
-    pretrained_model = torch.load(r'./checkpoints/best_model_conv-former_1.pth')
+    pretrained_model = torch.load(r'checkpoints/best_model_resnet_3.pth')
     tep_dataset = TEPDataset(src_path=r'./data/TEP',
                              split_ratio={'train': 0.7, 'eval': 0.1},
-                             data_domains={'source': 1, 'target': 2},
+                             data_domains={'source': 3, 'target': 1},
                              dataset_mode='test',
-                             data_dim=3,
+                             data_dim=4,
                              transform=None,
                              overlap=True)
-    analyze = Analyze(dataset=tep_dataset, model=pretrained_model, layer_name='out_layer', algorithm='division')
+    analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
+                      layer_name='conv5_x', algorithm='division')
     analyze.embedding_analyze()

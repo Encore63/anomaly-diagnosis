@@ -202,7 +202,7 @@ class LiConvFormer(nn.Module):
         self.out_layer = nn.Linear(8 * dim, out_channel)
 
     def forward(self, x):
-        x = rearrange(x, 'B E L -> B L E')
+        # x = rearrange(x, 'B E L -> B L E')
         x = self.in_layer(x)
         if isinstance(self.in_layer, ResNetFeature):
             x = x.reshape(x.shape[0], self.dim, -1)
@@ -212,6 +212,6 @@ class LiConvFormer(nn.Module):
 
 
 if __name__ == '__main__':
-    data = torch.randn((1, 10, 50))
-    model = LiConvFormer(use_residual=False, in_channel=50, out_channel=10)
+    data = torch.randn((1, 1, 10, 50))
+    model = LiConvFormer(use_residual=True, in_channel=1, out_channel=10)
     summary(model, input_data=data)

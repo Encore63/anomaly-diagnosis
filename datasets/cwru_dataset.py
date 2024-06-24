@@ -171,7 +171,7 @@ class CWRUDataset(object):
 
 if __name__ == '__main__':
     from easydict import EasyDict as eDict
-    dataset_tool = CWRUDataset(data_dir=root, transfer_task=[[0], [1]], normalize_type="0-1", data_dim=2)
+    dataset_tool = CWRUDataset(data_dir=root, transfer_task=[[0], [1]], normalize_type="0-1", data_dim=3)
     source, target = eDict(d={'train': None, 'val': None}), eDict(d={'train': None, 'val': None})
     source['train'], source['val'], target['train'], target['val'] = dataset_tool.data_split(transfer_learning=True)
-    print(source.val[0][0].shape)
+    print(type(source.val))

@@ -4,6 +4,7 @@ import torch.nn as nn
 from copy import deepcopy
 from algorithms.comp.sam import SAM
 from utils.loss import conjugate_loss
+from algorithms import delta
 from algorithms.comp import trans_norm
 from utils.data_utils import domain_division, domain_merge
 
@@ -90,24 +91,31 @@ def forward_and_adapt(x, model, divider, optimizer, use_entropy, weighting):
     certain_data, uncertain_data, certain_idx, uncertain_idx, weight = domain_division(divider, x,
                                                                                        use_entropy=use_entropy,
                                                                                        weighting=weighting)
-    domain_idx = {'source': certain_idx,
-                  'target': uncertain_idx}
-    replace_bn_layer(model, domain_idx)
-    outputs = model(x)
+    # domain_idx = {'source': certain_idx,
+    #               'target': uncertain_idx}
+    # replace_tn_layer(model, domain_idx)
+    # print(model)
+    # outputs = model(x)
 
-    # u_outputs = model(uncertain_data)
-    # c_outputs = model(certain_data)
-    # if len(c_outputs.shape) == 1:
-    #     c_outputs = c_outputs.unsqueeze(dim=0)
-    # if len(u_outputs.shape) == 1:
-    #     u_outputs = u_outputs.unsqueeze(dim=0)
-    # outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
+    # replace bn to tbr
+    # replace_mods = delta.find_bns(model, 0.95)
+    # for (parent, name, child) in replace_mods:
+    #     setattr(parent, name, child)
+
+    u_outputs = model(uncertain_data)
+    # model = configure_model(model, True)
+    c_outputs = model(certain_data)
+    if len(c_outputs.shape) == 1:
+        c_outputs = c_outputs.unsqueeze(dim=0)
+    if len(u_outputs.shape) == 1:
+        u_outputs = u_outputs.unsqueeze(dim=0)
+    outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
 
     # adapt
-    # c_loss = conjugate_loss(c_outputs).mean(0)
-    # u_loss = conjugate_loss(u_outputs).mean(0)
-    # loss = c_loss * weight[0] + u_loss * weight[1]
-    loss = softmax_entropy(outputs).mean(0)
+    c_loss = softmax_entropy(c_outputs).mean(0)
+    u_loss = softmax_entropy(u_outputs).mean(0)
+    loss = c_loss * weight[0] + u_loss * weight[1]
+    # loss = softmax_entropy(outputs).mean(0)
     loss.backward()
     if isinstance(optimizer, SAM):
         optimizer.first_step(zero_grad=True)
@@ -157,7 +165,7 @@ def load_model_and_optimizer(model, optimizer, model_state, optimizer_state):
     optimizer.load_state_dict(optimizer_state)
 
 
-def replace_bn_layer(model, domain_idx):
+def replace_tn_layer(model, domain_idx):
     for name, module in model.named_children():
         if isinstance(module, nn.BatchNorm1d):
             tn = trans_norm.TransNorm1d(module.num_features, domain_idx,
@@ -172,23 +180,25 @@ def replace_bn_layer(model, domain_idx):
         elif isinstance(module, trans_norm.TransNorm1d) or isinstance(module, trans_norm.TransNorm2d):
             module.domain_idx = domain_idx
         else:
-            replace_bn_layer(module, domain_idx)  # 递归替换子模块
+            replace_tn_layer(module, domain_idx)  # 递归替换子模块
 
 
 def configure_model(model, freeze=False):
     """
-    Configure model for use with tent.
+    Configure model for use with div-tent.
     """
-    # train mode, because tent optimizes the model to minimize entropy
+    # train mode, because div-tent optimizes the model to minimize entropy
     model.train()
     # disable grad, to (re-)enable only what tent updates
     model.requires_grad_(False)
     # configure norm for tent updates: enable grad + force batch statistics
+    for n, m in model.named_modules():
+        if n == 'fc' or n == 'classifier':
+            m.requires_grad_(True)
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             m.requires_grad_(True)
             if freeze:
-                model.eval()
                 m.training = False
             else:
                 m.training = True
