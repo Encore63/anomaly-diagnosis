@@ -14,7 +14,7 @@ class DatasetConfig:
     data_domains: Dict
     dataset_mode: str
     seed: int = 2024,
-    data_dim: int = 3,
+    data_dim: int = 4,
     src_path: str = './data/TEP',
     split_ratio: Dict = {'train': 0.7, 'eval': 0.2},
     neglect: List = None,

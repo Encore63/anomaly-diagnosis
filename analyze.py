@@ -92,10 +92,10 @@ class Analyze(object):
 
 
 if __name__ == '__main__':
-    pretrained_model = torch.load(r'checkpoints/best_model_resnet_3.pth')
+    pretrained_model = torch.load(r'checkpoints/best_model_resnet_1.pth')
     tep_dataset = TEPDataset(src_path=r'./data/TEP',
                              split_ratio={'train': 0.7, 'eval': 0.1},
-                             data_domains={'source': 3, 'target': 1},
+                             data_domains={'source': 1, 'target': 3},
                              dataset_mode='test',
                              data_dim=4,
                              transform=None,

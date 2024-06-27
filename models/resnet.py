@@ -45,8 +45,8 @@ class BasicBlock(nn.Module):
 
 
 class BottleNeck(nn.Module):
-    """Residual block for resnet over 50 layers
-
+    """
+    Residual block for resnet over 50 layers
     """
     expansion = 4
 
@@ -164,8 +164,7 @@ def resnet(in_channels, num_classes, num_block=(2, 2, 2, 2)):
 
 
 if __name__ == '__main__':
-    from algorithms.divtent import replace_tbr_layer
     model = resnet(in_channels=1, num_classes=10)
-    replace_tbr_layer(model, 0.95)
-    data = torch.randn((128, 1, 10, 50))
+    bottle_neck = BottleNeck(1, 10)
+    data = torch.randn((16, 1, 10, 50))
     summary(model, input_data=data)
