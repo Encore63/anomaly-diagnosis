@@ -7,11 +7,12 @@ from algorithms import tent
 from algorithms import divtent
 from algorithms.norm import Norm
 from algorithms.delta import DELTA
-from torch.functional import F
 from utils.hook_manager import HookManager
 from utils.visualize import plot_embedding
+from utils.visualize import plot_confusion_matrix
 from datasets.tep_dataset import TEPDataset
 from torch.utils.data.dataloader import DataLoader
+from sklearn.metrics import confusion_matrix as cm
 
 
 class Analyze(object):
@@ -20,32 +21,14 @@ class Analyze(object):
         self.algorithm = algorithm
         self.layer_name = layer_name
         self.dataset = dataset
-        self._init_model(self._get_configs())
+        self.args = self._get_configs()
+        self._init_model(self.args)
 
     @staticmethod
     def _get_configs():
         with hydra.initialize(version_base=None, config_path='./configs', job_name='analyze'):
             global_configs = hydra.compose(config_name='config')
         return global_configs
-
-    # @staticmethod
-    # def kl_divergence(source, target, args):
-    #     domains = args.dataset.domains
-    #     src_data = TEPDataset(src_path=r'./data/TEP',
-    #                           split_ratio={'train': 0.7, 'eval': 0.1},
-    #                           data_domains={'source': 1, 'target': source},
-    #                           dataset_mode='test',
-    #                           data_dim=4,
-    #                           transform=None,
-    #                           overlap=True)
-    #     tgt_data = TEPDataset(src_path=r'./data/TEP',
-    #                           split_ratio={'train': 0.7, 'eval': 0.1},
-    #                           data_domains={'source': 1, 'target': target},
-    #                           dataset_mode='test',
-    #                           data_dim=4,
-    #                           transform=None,
-    #                           overlap=True)
-    #     F.kl_div(..., ...)
 
     def _init_model(self, args):
         if not self.algorithm:
@@ -90,6 +73,16 @@ class Analyze(object):
             plt.show()
         hook_manager.remove_hooks()
 
+    def confusion_matrix(self):
+        data_iter = DataLoader(self.dataset, batch_size=len(self.dataset), shuffle=False)
+        for x, y in data_iter:
+            if torch.cuda.is_available():
+                x, y = x.cuda(), y.cuda()
+            pred = self.model(x)
+            confusion_matrix = cm(pred, y)
+            plot_confusion_matrix(confusion_matrix, self.args.model.num_classes)
+            plt.show()
+
 
 if __name__ == '__main__':
     pretrained_model = torch.load(r'checkpoints/best_model_resnet_1.pth')
@@ -102,4 +95,5 @@ if __name__ == '__main__':
                              overlap=True)
     analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
                       layer_name='conv5_x', algorithm='division')
-    analyze.embedding_analyze()
+    # analyze.embedding_analyze()
+    analyze.confusion_matrix()

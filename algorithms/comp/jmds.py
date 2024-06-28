@@ -47,15 +47,15 @@ def KLLoss(input_, target_, coeff):
     return kl_loss.mean(dim=0)
 
 
-def mix_up(x, c_batch, t_batch, model, args):
+def mix_up(_x, c_batch, t_batch, model, args):
     # weight mix-up
     if args.alpha == 0:
-        outputs = model(x)
+        outputs = model(_x)
         return KLLoss(outputs, t_batch, c_batch)
-    lam = (torch.from_numpy(np.random.beta(args.alpha, args.alpha, [len(x)]))).float().cuda()
+    lam = (torch.from_numpy(np.random.beta(args.alpha, args.alpha, [len(_x)]))).float().cuda()
     t_batch = torch.eye(args.class_num)[t_batch.argmax(dim=1)].cuda()
-    shuffle_idx = torch.randperm(len(x))
-    mixed_x = (lam * x.permute(1, 2, 3, 0) + (1 - lam) * x[shuffle_idx].permute(1, 2, 3, 0)).permute(3, 0, 1, 2)
+    shuffle_idx = torch.randperm(len(_x))
+    mixed_x = (lam * _x.permute(1, 2, 3, 0) + (1 - lam) * _x[shuffle_idx].permute(1, 2, 3, 0)).permute(3, 0, 1, 2)
     mixed_c = lam * c_batch + (1 - lam) * c_batch[shuffle_idx]
     mixed_t = (lam * t_batch.permute(1, 0) + (1 - lam) * t_batch[shuffle_idx].permute(1, 0)).permute(1, 0)
     mixed_x, mixed_c, mixed_t = map(torch.autograd.Variable, (mixed_x, mixed_c, mixed_t))
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     from torch.utils.data.dataloader import DataLoader
     tep_dataset = get_dataset(dataset_name='tep', dataset_mode='test', transfer_task=[1, 2], time_win=10, data_dim=4)
     data_iter = DataLoader(tep_dataset, batch_size=16, shuffle=True)
-    pretrained_model = torch.load(r'F:\StudyFiles\PyProjects\AnomalyDiagnosis\checkpoints\best_model_resnet_1.pth')
+    pretrained_model = torch.load(r'../../checkpoints/best_model_resnet_1.pth')
     for index, (x, y) in enumerate(data_iter):
         if torch.cuda.is_available():
             x, y = x.cuda(), y.cuda()

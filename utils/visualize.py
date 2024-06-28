@@ -3,7 +3,6 @@ import numpy as np
 
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
-from sklearn.decomposition import PCA
 from matplotlib import pyplot as plt
 
 
