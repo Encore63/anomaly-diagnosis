@@ -83,6 +83,39 @@ class Analyze(object):
             plot_confusion_matrix(confusion_matrix, self.args.model.num_classes)
             plt.show()
 
+    @staticmethod
+    def domain_divergence(data_path, domains, dim):
+        from einops import rearrange
+        from torch.nn import BatchNorm1d
+        from torch.distributions import Normal, kl_divergence
+        from utils.data_utils import data_concat
+
+        data, normed_data = list(), list()
+        mean_var = list()
+        for domain in domains:
+            data.append(data_concat(src_path=data_path, mode=domain)[:, :, :-1])
+        bn = BatchNorm1d(dim)
+        for domain_data in data:
+            domain_data = torch.Tensor(domain_data)
+            if dim != domain_data.shape[1]:
+                domain_data = rearrange(domain_data, 'B L E -> B E L')
+            bn(domain_data)
+            mean, var = bn.running_mean, bn.running_var
+            mean_var.append((mean, var))
+        print(mean_var)
+
+        distributions = list()
+        for m, v in mean_var:
+            distributions.append(Normal(m, v))
+
+        sim_matrix = torch.zeros((len(domains), len(domains)))
+        for dx in range(len(distributions)):
+            for dy in range(len(distributions)):
+                sim_matrix[dx, dy] = kl_divergence(distributions[dx], distributions[dy])
+        print(sim_matrix)
+
+        return sim_matrix
+
 
 if __name__ == '__main__':
     pretrained_model = torch.load(r'checkpoints/best_model_resnet_1.pth')
@@ -96,4 +129,4 @@ if __name__ == '__main__':
     analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
                       layer_name='conv5_x', algorithm='division')
     # analyze.embedding_analyze()
-    analyze.confusion_matrix()
+    analyze.domain_divergence(data_path=r'./data/TEP', domains=[1, 2, 3, 4, 5, 6], dim=50)
