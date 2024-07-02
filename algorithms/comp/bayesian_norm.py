@@ -4,6 +4,7 @@ from torch import nn
 
 class BayesianBatchNorm(nn.Module):
     """ Use the source statistics as a prior on the target statistics """
+
     @staticmethod
     def find_bns(parent, prior):
         replace_mods = []
@@ -31,7 +32,8 @@ class BayesianBatchNorm(nn.Module):
         super(BayesianBatchNorm, self).__init__()
         self.layer = layer
         self.layer.eval()
-        self.norm = nn.BatchNorm2d(self.layer.num_features, affine=False,momentum=cfg.TEST.MOMENTUM,track_running_stats=True).cuda() #todo
+        self.norm = nn.BatchNorm2d(self.layer.num_features, affine=False, momentum=0.1,
+                                   track_running_stats=True).cuda()
         self.normed_div_mean = torch.zeros(1).cuda()
 
     def forward(self, input):
@@ -45,15 +47,19 @@ class BayesianBatchNorm(nn.Module):
                 self.norm.running_var + 0.00001) * torch.eye(
             self.norm.running_var.shape[0]).cuda())
 
-        self.div = (0.5 * torch.distributions.kl_divergence(source_distribution,target_distribution) + 0.5 * torch.distributions.kl_divergence(target_distribution, source_distribution))
+        self.div = (0.5 * torch.distributions.kl_divergence(source_distribution,
+                                                            target_distribution) + 0.5 * torch.distributions.kl_divergence(
+            target_distribution, source_distribution))
 
         self.div_values = self.div
         self.prior = self.normed_div_mean
 
-        running_mean = (self.prior * self.layer.running_mean+ (1 - self.prior) * self.norm.running_mean)
-        running_var = (self.prior * self.layer.running_var) + (1 - self.prior) * self.norm.running_var + self.prior * (1 - self.prior) * ((self.layer.running_mean - self.norm.running_mean) ** (2))
+        running_mean = (self.prior * self.layer.running_mean + (1 - self.prior) * self.norm.running_mean)
+        running_var = (self.prior * self.layer.running_var) + (1 - self.prior) * self.norm.running_var + self.prior * (
+                    1 - self.prior) * ((self.layer.running_mean - self.norm.running_mean) ** (2))
 
         output = (input - running_mean[None, :, None, None]) / torch.sqrt(
-            running_var[None, :, None, None] + self.layer.eps) * self.layer.weight[None, :, None, None] + self.layer.bias[None, :, None, None]
+            running_var[None, :, None, None] + self.layer.eps) * self.layer.weight[None, :, None,
+                                                                 None] + self.layer.bias[None, :, None, None]
 
         return output
