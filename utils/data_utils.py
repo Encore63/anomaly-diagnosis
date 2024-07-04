@@ -116,6 +116,7 @@ def domain_division(model, data, p_threshold: float = None, use_entropy: bool = 
     batch_size = data.shape[0]
     with torch.no_grad():
         pred = model(data)
+        pred = torch.softmax(pred, dim=1)
         max_prob, max_idx = torch.max(pred, dim=-1, **kwargs)
 
     if not p_threshold:
@@ -177,6 +178,18 @@ def domain_merge(source_data, target_data, source_index, target_index):
     return result.cuda()
 
 
-if __name__ == '__main__':
-    data = data_concat(src_path=r'../data/TEP', mode=1, num_classes=20)
-    print(data.shape)
+def get_thresh(model, data, eps=1e-3):
+    left, right = 0, 1
+    delta = data.shape[0] / 10
+    while left <= right:
+        mid = (left + right) / 2
+        print(f'l: {left}, r: {right}, mid: {mid}')
+        s_data, t_data, _, _, _ = domain_division(model, data, p_threshold=mid, use_entropy=False)
+        print(s_data.shape, t_data.shape)
+        if s_data.shape == t_data.shape:
+            return mid
+        elif s_data.shape > t_data.shape:
+            left = mid + eps
+        elif s_data.shape < t_data.shape:
+            right = mid - eps
+    return -1

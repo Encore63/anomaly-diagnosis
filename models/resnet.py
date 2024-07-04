@@ -82,7 +82,7 @@ class ResNet(nn.Module):
         self.in_channels = 64
 
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels, 64, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_channels, 64, kernel_size=5, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
         # we use a different input size than the original paper
@@ -131,7 +131,7 @@ class ResNet(nn.Module):
     def forward(self, x):
         # x = rearrange(x, 'B P L E -> B L P E')
         output = self.conv1(x)
-        output = self._forward_attn(output)
+        # output = self._forward_attn(output)
         output = self.conv2_x(output)
         output = self.conv3_x(output)
         output = self.conv4_x(output)
