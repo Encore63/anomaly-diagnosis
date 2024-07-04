@@ -48,15 +48,16 @@ class BayesianBatchNorm(nn.Module):
             self.norm.running_var.shape[0]).cuda())
 
         self.div = (0.5 * torch.distributions.kl_divergence(source_distribution,
-                                                            target_distribution) + 0.5 * torch.distributions.kl_divergence(
-            target_distribution, source_distribution))
+                                                            target_distribution) +
+                    0.5 * torch.distributions.kl_divergence(target_distribution,
+                                                            source_distribution))
 
         self.div_values = self.div
         self.prior = self.normed_div_mean
 
         running_mean = (self.prior * self.layer.running_mean + (1 - self.prior) * self.norm.running_mean)
         running_var = (self.prior * self.layer.running_var) + (1 - self.prior) * self.norm.running_var + self.prior * (
-                    1 - self.prior) * ((self.layer.running_mean - self.norm.running_mean) ** (2))
+                1 - self.prior) * ((self.layer.running_mean - self.norm.running_mean) ** (2))
 
         output = (input - running_mean[None, :, None, None]) / torch.sqrt(
             running_var[None, :, None, None] + self.layer.eps) * self.layer.weight[None, :, None,

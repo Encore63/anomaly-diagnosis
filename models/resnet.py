@@ -87,7 +87,7 @@ class ResNet(nn.Module):
             nn.ReLU(inplace=True))
         # we use a different input size than the original paper
         # so conv2_x's stride is 1
-        # self.attn = Transformer(dim=50, depth=1, heads=5, mlp_dim=64, dropout=0.1)
+        self.attn = Transformer(dim=50, depth=1, heads=5, mlp_dim=64, dropout=0.1)
         self.conv2_x = self._make_layer(block, 64, num_block[0], 1)
         self.conv3_x = self._make_layer(block, 128, num_block[1], 2)
         self.conv4_x = self._make_layer(block, 256, num_block[2], 2)
@@ -96,7 +96,8 @@ class ResNet(nn.Module):
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
     def _make_layer(self, block, out_channels, num_blocks, stride):
-        """make resnet layers(by layer i didnt mean this 'layer' was the
+        """
+        make resnet layers(by layer i didnt mean this 'layer' was the
         same as a neuron netowork layer, ex. conv layer), one layer may
         contain more than one residual block
 
@@ -130,7 +131,7 @@ class ResNet(nn.Module):
     def forward(self, x):
         # x = rearrange(x, 'B P L E -> B L P E')
         output = self.conv1(x)
-        # output = self._forward_attn(output)
+        output = self._forward_attn(output)
         output = self.conv2_x(output)
         output = self.conv3_x(output)
         output = self.conv4_x(output)
@@ -164,7 +165,6 @@ def resnet(in_channels, num_classes, num_block=(2, 2, 2, 2)):
 
 
 if __name__ == '__main__':
-    model = resnet(in_channels=1, num_classes=10)
-    bottle_neck = BottleNeck(1, 10)
-    data = torch.randn((16, 1, 10, 50))
+    model = resnet(in_channels=50, num_classes=10)
+    data = torch.randn((16, 1, 50, 10))
     summary(model, input_data=data)

@@ -175,3 +175,8 @@ def domain_merge(source_data, target_data, source_index, target_index):
             result[i] = target_data[t_idx]
             t_idx += 1
     return result.cuda()
+
+
+if __name__ == '__main__':
+    data = data_concat(src_path=r'../data/TEP', mode=1, num_classes=20)
+    print(data.shape)

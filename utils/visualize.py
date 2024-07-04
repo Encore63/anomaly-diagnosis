@@ -1,9 +1,15 @@
 import itertools
 import numpy as np
+import seaborn as sns
 
 from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 from matplotlib import pyplot as plt
+
+
+def plot_similarity_matrix(data, cmap='coolwarm'):
+    sns.heatmap(data, cmap=cmap)
+    plt.show()
 
 
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues) -> None:

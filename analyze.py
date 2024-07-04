@@ -4,12 +4,15 @@ import matplotlib.pyplot as plt
 
 from pprint import pprint
 from algorithms import tent
+from einops import rearrange
 from algorithms import divtent
+from copy import copy, deepcopy
 from algorithms.norm import Norm
 from algorithms.delta import DELTA
 from utils.hook_manager import HookManager
 from utils.visualize import plot_embedding
 from utils.visualize import plot_confusion_matrix
+from utils.visualize import plot_similarity_matrix
 from datasets.tep_dataset import TEPDataset
 from torch.utils.data.dataloader import DataLoader
 from sklearn.metrics import confusion_matrix as cm
@@ -81,28 +84,26 @@ class Analyze(object):
             pred = self.model(x)
             confusion_matrix = cm(pred, y)
             plot_confusion_matrix(confusion_matrix, self.args.model.num_classes)
-            plt.show()
 
     @staticmethod
     def domain_divergence(data_path, domains, dim):
-        from einops import rearrange
         from torch.nn import BatchNorm1d
-        from torch.distributions import Normal, kl_divergence
         from utils.data_utils import data_concat
+        from torch.distributions import Normal, MultivariateNormal, kl_divergence
 
         data, normed_data = list(), list()
         mean_var = list()
         for domain in domains:
             data.append(data_concat(src_path=data_path, mode=domain)[:, :, :-1])
-        bn = BatchNorm1d(dim)
+        # bn = BatchNorm1d(dim, momentum=1)
         for domain_data in data:
             domain_data = torch.Tensor(domain_data)
             if dim != domain_data.shape[1]:
                 domain_data = rearrange(domain_data, 'B L E -> B E L')
-            bn(domain_data)
-            mean, var = bn.running_mean, bn.running_var
-            mean_var.append((mean, var))
-        print(mean_var)
+            # bn(domain_data)
+            # mean, var = bn.running_mean.detach(), bn.running_var.detach()
+            mean_var.append((deepcopy(domain_data.mean()), deepcopy(domain_data.var())))
+            # bn.reset_parameters()
 
         distributions = list()
         for m, v in mean_var:
@@ -111,10 +112,11 @@ class Analyze(object):
         sim_matrix = torch.zeros((len(domains), len(domains)))
         for dx in range(len(distributions)):
             for dy in range(len(distributions)):
-                sim_matrix[dx, dy] = kl_divergence(distributions[dx], distributions[dy])
+                # 使用对称KL散度度量域间差异
+                sim_matrix[dx, dy] = (1 / 2 * kl_divergence(distributions[dx], distributions[dy]) +
+                                      1 / 2 * kl_divergence(distributions[dy], distributions[dx]))
         print(sim_matrix)
-
-        return sim_matrix
+        plot_similarity_matrix(sim_matrix, cmap='Blues')
 
 
 if __name__ == '__main__':
@@ -125,7 +127,8 @@ if __name__ == '__main__':
                              dataset_mode='test',
                              data_dim=4,
                              transform=None,
-                             overlap=True)
+                             overlap=True,
+                             num_classes=20)
     analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
                       layer_name='conv5_x', algorithm='division')
     # analyze.embedding_analyze()
