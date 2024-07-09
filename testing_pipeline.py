@@ -132,25 +132,24 @@ if __name__ == '__main__':
     from torch.utils.data.dataloader import DataLoader
     from utils.data_utils import domain_division, domain_merge, find_thresh
 
-
-    model = torch.load(r'./checkpoints/best_model_conv-former_3.pth').to('cuda')
+    model = torch.load(r'./checkpoints/best_model_resnet_3.pth').to('cuda')
     divider = deepcopy(model)
     # model = norm.Norm(model)
-    # model = tent.configure_model(model)
-    # params, param_names = tent.collect_params(model)
-    # optimizer = torch.optim.Adam(params)
-    # model = tent.Tent(model, optimizer, steps=1)
-
+    model = tent.configure_model(model)
+    params, param_names = tent.collect_params(model)
+    optimizer = torch.optim.Adam(params)
+    model = tent.Tent(model, optimizer, steps=1)
 
     count = 0
-    tep_dataset = get_dataset(dataset_name='tep', transfer_task=[2, 1], dataset_mode='test')
-    data_iter = DataLoader(dataset=tep_dataset, batch_size=128, shuffle=False)
+    tep_dataset = get_dataset(dataset_name='tep', transfer_task=[3, 1], dataset_mode='test')
+    data_iter = DataLoader(dataset=tep_dataset, batch_size=256, shuffle=False)
     for x, y in data_iter:
         if torch.cuda.is_available():
             x, y = x.cuda(), y.cuda()
             pred = torch.softmax(divider(x), dim=1)
             thresh = find_thresh(pred)
-            c_data, u_data, c_index, u_index, w = domain_division(divider, x, use_entropy=False, weighting=True, p_threshold=thresh)
+            c_data, u_data, c_index, u_index, w = domain_division(divider, x, use_entropy=False,
+                                                                  weighting=True, p_threshold=thresh)
             c_data, u_data = c_data.cuda(), u_data.cuda()
         # output = model(c_data)
         output = model(u_data)
