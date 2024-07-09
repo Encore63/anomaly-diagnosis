@@ -8,7 +8,8 @@ from matplotlib import pyplot as plt
 
 
 def plot_similarity_matrix(data, cmap='coolwarm'):
-    sns.heatmap(data, cmap=cmap)
+    ax = sns.heatmap(data, cmap=cmap)
+    ax.set_title('domain similarity')
     plt.show()
 
 

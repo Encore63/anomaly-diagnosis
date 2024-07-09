@@ -5,7 +5,6 @@ from copy import deepcopy
 from algorithms.comp import jmds
 from algorithms.comp.sam import SAM
 from algorithms.comp import trans_norm
-from utils.data_utils import domain_division, domain_merge
 
 
 @torch.enable_grad()
@@ -55,7 +54,7 @@ class DivTent(nn.Module):
         for _ in range(self.steps):
             # outputs = forward_and_adapt(x, self.model, self.divider, self.optimizer,
             #                             self.use_entropy, self.weighting)
-            outputs = forward_and_adapt(x, self.model, self.optimizer)
+            outputs = forward_and_adapt(x, self.model, self.divider, self.optimizer)
 
         return outputs
 
@@ -123,17 +122,16 @@ def division_loss(probs):
 
 
 @torch.enable_grad()
-def forward_and_adapt(x, model, optimizer, out_layer='avg_pool'):
+def forward_and_adapt(x, model, divider, optimizer, out_layer='avg_pool'):
     """
     Forward and adapt model on batch of data.
     `Measure entropy of the model prediction, take gradients, and update params.`
     """
     # forward
-    from utils.loss import conjugate_loss
 
-    weight = jmds.joint_model_data_score(x, model, out_layer, num_classes=10)
+    weight = jmds.joint_model_data_score(x, divider, out_layer, num_classes=10)
     output = model(x)
-    weight, output = map(torch.autograd.Variable, (weight, output))
+    # weight, output = map(torch.autograd.Variable, (weight, output))
 
     kl_loss = jmds.mix_up(x, weight, output, model)
     ent_loss = softmax_entropy(output).mean(0)
@@ -150,7 +148,9 @@ def collect_params(model):
     """
     Collect the affine scale + shift parameters from batch norms.
 
+
     Walk the model's modules and collect all batch normalization parameters.
+
     Return the parameters and their names.
 
     Note: other choices of parameterization are possible!

@@ -9,6 +9,7 @@ defaults:
   - optim: adam
   - util: default
   - algorithm:
+    - bayesian_norm
     - tent
     - arm
     - delta

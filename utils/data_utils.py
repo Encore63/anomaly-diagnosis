@@ -178,18 +178,38 @@ def domain_merge(source_data, target_data, source_index, target_index):
     return result.cuda()
 
 
-def get_thresh(model, data, eps=1e-3):
-    left, right = 0, 1
-    delta = data.shape[0] / 10
-    while left <= right:
-        mid = (left + right) / 2
-        print(f'l: {left}, r: {right}, mid: {mid}')
-        s_data, t_data, _, _, _ = domain_division(model, data, p_threshold=mid, use_entropy=False)
-        print(s_data.shape, t_data.shape)
-        if s_data.shape == t_data.shape:
-            return mid
-        elif s_data.shape > t_data.shape:
-            left = mid + eps
-        elif s_data.shape < t_data.shape:
-            right = mid - eps
-    return -1
+def find_thresh(predictions, max_iterations=1000, tolerance=1e-2):
+    """
+    通过二分查找找到将数据划分为相等数量两部分的阈值。
+
+    :param predictions: 模型预测概率（假设形状为 [batch_size, num_classes]）
+    :param max_iterations: 最大迭代次数
+    :param tolerance: 容差范围
+    :return: 最佳阈值
+    """
+    low, high = 0.0, 1.0
+    batch_size = predictions.shape[0]
+
+    for _ in range(max_iterations):
+        threshold = (low + high) / 2.0
+
+        # 获取最大预测概率
+        max_prob, _ = torch.max(predictions, dim=-1)
+
+        # 计算高于阈值和低于阈值的样本数量
+        high_mask = max_prob >= threshold
+        low_mask = ~high_mask
+
+        num_high = high_mask.sum().item()
+        num_low = low_mask.sum().item()
+
+        # 检查数量是否相等或在容差范围内
+        if abs(num_high - num_low) <= tolerance * batch_size:
+            return threshold
+        elif num_high > num_low:
+            low = threshold
+        else:
+            high = threshold
+
+    # 如果在最大迭代次数内未找到精确值，返回最后的中间值
+    return (low + high) / 2.0

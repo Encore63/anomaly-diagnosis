@@ -94,7 +94,7 @@ class Analyze(object):
         data, normed_data = list(), list()
         mean_var = list()
         for domain in domains:
-            data.append(data_concat(src_path=data_path, mode=domain)[:, :, :-1])
+            data.append(data_concat(src_path=data_path, mode=domain, num_classes=10)[:, :, :-1])
         # bn = BatchNorm1d(dim, momentum=1)
         for domain_data in data:
             domain_data = torch.Tensor(domain_data)
@@ -128,7 +128,7 @@ if __name__ == '__main__':
                              data_dim=4,
                              transform=None,
                              overlap=True,
-                             num_classes=20)
+                             num_classes=10)
     analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
                       layer_name='conv5_x', algorithm='division')
     # analyze.embedding_analyze()
