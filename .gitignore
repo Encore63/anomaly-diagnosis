@@ -8,3 +8,4 @@
 .sh
 /data/
 /logs/
+/unit_test.py

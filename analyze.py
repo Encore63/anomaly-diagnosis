@@ -121,15 +121,8 @@ class Analyze(object):
 
 if __name__ == '__main__':
     pretrained_model = torch.load(r'checkpoints/best_model_resnet_1.pth')
-    tep_dataset = TEPDataset(src_path=r'./data/TEP',
-                             split_ratio={'train': 0.7, 'eval': 0.1},
-                             data_domains={'source': 1, 'target': 3},
-                             dataset_mode='test',
-                             data_dim=4,
-                             transform=None,
-                             overlap=True,
-                             num_classes=10)
+    tep_dataset = TEPDataset(src_path=r'./data/TEP', transfer_task=[[1], [2]]).get_subset('test')
     analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
-                      layer_name='conv5_x', algorithm='division')
+                      layer_name='conv5_x', algorithm='tent')
     # analyze.embedding_analyze()
-    analyze.domain_divergence(data_path=r'./data/TEP', domains=[1, 2, 3, 4, 5, 6], dim=50)
+    # analyze.domain_divergence(data_path=r'./data/TEP', domains=[1, 2, 3, 4, 5, 6], dim=50)

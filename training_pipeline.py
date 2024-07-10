@@ -101,19 +101,11 @@ def train_with_arm(domains, model, criterion, args):
     stopping_tool = EarlyStopping(args, save_path=args.model.save_path, verbose=True)
     global_train_step, global_eval_step = 0, 0
 
-    train_iters, eval_iters = [], []
-    for domain in domains:
-        dataset = TEPDataset(args.dataset.path, split_ratio,
-                             {'source': domain, 'target': args.domain.target},
-                             'train', seed=args.random_seed)
-        train_iters.append(DataLoader(dataset, batch_size=args.util.train.batch_size, shuffle=True))
-        dataset = TEPDataset(args.PATH.DATA_PATH, split_ratio,
-                             {'source': domain, 'target': args.domain.target},
-                             'eval', seed=args.random_seed)
-        eval_iters.append(DataLoader(dataset, batch_size=args.util.train.batch_size, shuffle=True))
-
-    train_iter = list(itertools.chain(*train_iters))
-    eval_iter = list(itertools.chain(*eval_iters))
+    transfer_task = [domains, [args.domain.target]]
+    dataset = TEPDataset(args.dataset.path, transfer_task, seed=args.random_seed)
+    subset = dataset.get_subset('train')
+    train_iter = DataLoader(subset['train'], batch_size=args.util.train.batch_size, shuffle=True)
+    eval_iter = DataLoader(subset['val'], batch_size=args.util.train.batch_size, shuffle=True)
 
     for epoch in range(args.util.train.epochs):
         train_loop = tqdm(enumerate(train_iter), total=len(train_iter))

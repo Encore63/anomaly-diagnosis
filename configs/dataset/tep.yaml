@@ -1,8 +1,6 @@
-split_ratio:
-  - 0.7
-  - 0.2
-dim: 4
+dim: 3
 time_window: 10
+transfer: True
 overlap: True
 domains:
   - 1

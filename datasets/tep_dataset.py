@@ -1,67 +1,32 @@
-from collections import defaultdict
-
 import torch
+import numpy as np
 
-from typing import Dict, List
-from dataclasses import dataclass
-from utils.data_utils import data_split
+from typing import List
+from utils.data_utils import data_concat
 from torch.utils.data.dataset import Dataset
-from torch.utils.data.dataloader import DataLoader
+from sklearn.model_selection import train_test_split
 
 
-@dataclass
-class DatasetConfig:
-    data_domains: Dict
-    dataset_mode: str
-    seed: int = 2024,
-    data_dim: int = 4,
-    src_path: str = './data/TEP',
-    split_ratio: Dict = {'train': 0.7, 'eval': 0.2},
-    neglect: List = None,
-    time_win: int = 10,
-    num_classes: int = 10,
-    overlap: bool = True,
-    transform = None
+class TimeSeriesDataset(Dataset):
+    def __init__(self, list_data, time_win=10, data_dim=3, transform=None):
+        self.data = list_data[:, :, :-1]
+        self.labels = list_data[:, :, -1]
 
-
-class TEPDataset(Dataset):
-    def __init__(self, src_path: str, split_ratio: Dict, data_domains: Dict,
-                 dataset_mode: str, seed: int = 2024, data_dim: int = 4, neglect: list = None,
-                 time_win: int = 10, num_classes: int = 10, overlap: bool = True, transform=None):
-        self.raw_data = data_split(src_path, split_ratio, data_domains, random_seed=seed,
-                                   neglect=neglect, num_classes=num_classes, time_win=time_win, overlap=overlap)
-        self.labels = None
-        self.domains = data_domains
         self.transform = transform
-        self._select_dataset_mode(dataset_mode)
+        self.length = self.data.shape[0]
 
         self.data = torch.from_numpy(self.data).to(torch.float32)
         self.labels = torch.from_numpy(self.labels).to(torch.long)
         self._adjust_data_dim(time_win, data_dim)
 
-        self.length = self.data.shape[0]
-
     def _adjust_data_dim(self, time_win: int, data_dim: int):
         if time_win != 0:
-            offset = data_dim - len(self.data.shape)
-            if offset > 0:
+            offset = data_dim - len(self.data.shape) + 1
+            if offset >= 0:
                 for _ in range(offset):
                     self.data = torch.unsqueeze(self.data, dim=1)
         else:
             self.data = torch.squeeze(self.data, dim=1)
-
-    def _select_dataset_mode(self, mode_choice: str):
-        if mode_choice == 'train':
-            self.data = self.raw_data['source_train'][:, :, :-1]
-            self.labels = self.raw_data['source_train'][:, :, -1]
-        elif mode_choice == 'eval':
-            self.data = self.raw_data['source_eval'][:, :, :-1]
-            self.labels = self.raw_data['source_eval'][:, :, -1]
-        elif mode_choice == 'test' and self.domains['target'] is not None:
-            self.data = self.raw_data['target_test'][:, :, :-1]
-            self.labels = self.raw_data['target_test'][:, :, -1]
-        else:
-            assert self.data is not None or self.labels is not None, 'Given data does not exist!'
 
     def __getitem__(self, index):
         if self.transform:
@@ -73,16 +38,84 @@ class TEPDataset(Dataset):
         return self.length
 
 
+class TEPDataset(object):
+    def __init__(self, src_path: str, transfer_task: List, transfer=True, seed: int = 2024, data_dim: int = 3,
+                 neglect: list = None, time_win: int = 10, num_classes: int = 10, overlap: bool = True, transform=None):
+        self.source = transfer_task[0]
+        self.target = transfer_task[1]
+
+        source_raw, target_raw = [], []
+        for source_mode in self.source:
+            source_raw.append(data_concat(src_path, source_mode, time_win=time_win, neglect=neglect,
+                                          num_classes=num_classes, overlap=overlap))
+        for target_mode in self.target:
+            target_raw.append(data_concat(src_path, target_mode, time_win=time_win, neglect=neglect,
+                                          num_classes=num_classes, overlap=overlap))
+        self.source_data = np.concatenate(source_raw, axis=0)
+        self.target_data = np.concatenate(target_raw, axis=0)
+
+        self.transfer = transfer
+        self.random_seed = seed
+        self.data_dim = data_dim
+        self.time_win = time_win
+        self.transform = transform
+
+        '''
+        Construct uniform distribution for raw data.
+        '''
+        self._data_shuffle()
+
+    def _data_shuffle(self):
+        np.random.seed(self.random_seed)
+        np.random.shuffle(self.source_data)
+        np.random.seed(self.random_seed)
+        np.random.shuffle(self.target_data)
+
+    def get_subset(self, choice=None):
+        _subset = {}
+        if self.transfer:
+            source_train, source_val = train_test_split(self.source_data, test_size=0.2,
+                                                        random_state=self.random_seed)
+            if choice == 'train':
+                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                              data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
+                                                            data_dim=self.data_dim, transform=self.transform))
+            elif choice == 'test':
+                _subset = TimeSeriesDataset(self.target_data, time_win=self.time_win,
+                                            data_dim=self.data_dim, transform=self.transform)
+            else:
+                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                              data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
+                                                            data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('test', TimeSeriesDataset(self.target_data, time_win=self.time_win,
+                                                             data_dim=self.data_dim, transform=self.transform))
+            return _subset
+        else:
+            source_train_val, source_test = train_test_split(self.source_data, test_size=0.1,
+                                                             random_state=self.random_seed)
+            source_train, source_val = train_test_split(source_train_val, test_size=0.2,
+                                                        random_state=self.random_seed)
+            if choice == 'train':
+                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                              data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
+                                                            data_dim=self.data_dim, transform=self.transform))
+            elif choice == 'test':
+                _subset = TimeSeriesDataset(source_test, time_win=self.time_win,
+                                            data_dim=self.data_dim, transform=self.transform)
+            else:
+                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                              data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
+                                                            data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('test', TimeSeriesDataset(source_test, time_win=self.time_win,
+                                                             data_dim=self.data_dim, transform=self.transform))
+            return _subset
+
+
 if __name__ == '__main__':
-    dataset = TEPDataset(src_path=r'../data/TEP',
-                         split_ratio={'train': 0.7, 'eval': 0.2},
-                         data_domains={'source': 1, 'target': 2},
-                         dataset_mode='test',
-                         data_dim=4,
-                         transform=None,
-                         overlap=True)
-    print(dataset[0][0].shape)
-    data_iter = DataLoader(dataset, batch_size=128, shuffle=True)
-    for x, y in data_iter:
-        print(x.shape, y.shape)
-        break
+    tep_dataset = TEPDataset(src_path=r'../data/TEP', transfer_task=[[1], [2]])
+    subset = tep_dataset.get_subset('test')
+    print(len(subset))

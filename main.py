@@ -3,12 +3,12 @@ import pathlib
 
 from omegaconf import DictConfig, OmegaConf
 from utils.logger import get_time
-from utils.logger import save_log
 from models.resnet import resnet
 from models.tenet import TENet, ReTENet
 from models.cnn import CNN
 from models.dagcn import DAGCN
 from models.convformer import LiConvFormer
+from datasets.tep_dataset import TEPDataset
 from training_pipeline import *
 from testing_pipeline import *
 
@@ -49,26 +49,16 @@ def main(cfg: DictConfig):
 
     cfg.log_path = str(pathlib.Path(cfg.log_path).joinpath(f'{get_time()}'))
 
-    split_ratio = {'train': cfg.dataset.split_ratio[0],
-                   'eval': cfg.dataset.split_ratio[1]}
-
     datasets, dataloaders = {}, {}
-    data_domains = {'source': int(cfg.domain.source), 'target': int(cfg.domain.target)}
-    datasets.setdefault('train', TEPDataset(cfg.dataset.path, split_ratio, data_domains,
-                                            'train', seed=cfg.random_seed,
-                                            data_dim=cfg.dataset.dim,
-                                            time_win=cfg.dataset.time_window,
-                                            overlap=cfg.dataset.overlap))
-    datasets.setdefault('val', TEPDataset(cfg.dataset.path, split_ratio, data_domains,
-                                          'eval', seed=cfg.random_seed,
-                                          data_dim=cfg.dataset.dim,
-                                          time_win=cfg.dataset.time_window,
-                                          overlap=cfg.dataset.overlap))
-    datasets.setdefault('test', TEPDataset(cfg.dataset.path, split_ratio, data_domains,
-                                           'test', seed=cfg.random_seed,
-                                           data_dim=cfg.dataset.dim,
-                                           time_win=cfg.dataset.time_window,
-                                           overlap=cfg.dataset.overlap))
+    data_domains = [[int(cfg.domain.source)], [int(cfg.domain.target)]]
+    dataset_tool = TEPDataset(cfg.dataset.path,
+                              transfer_task=data_domains,
+                              transfer=cfg.dataset.transfer,
+                              seed=cfg.random_seed,
+                              data_dim=cfg.dataset.dim,
+                              time_win=cfg.dataset.time_window,
+                              overlap=cfg.dataset.overlap)
+    datasets = dataset_tool.get_subset()
 
     dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.util.train.batch_size, shuffle=True))
     dataloaders.setdefault('val', DataLoader(datasets['val'], batch_size=cfg.util.train.batch_size, shuffle=True))
