@@ -107,19 +107,10 @@ def test_with_delta(test_iter, model_path, args):
     model = delta.DELTA(args.algorithm, old_model)
 
     count = 0
-    use_division = False
     with torch.no_grad():
         for _, (data, label) in enumerate(test_iter):
             if torch.cuda.is_available():
                 data, label = data.cuda(), label.cuda()
-                if use_division:
-                    certain_data, uncertain_data, certain_idx, uncertain_idx, weight = \
-                        domain_division(old_model, data,
-                                        use_entropy=args.algorithm.use_entropy,
-                                        weighting=args.algorithm.weighting)
-                    model.classifier_adapt(uncertain_data)
-                    model.reset()
-
             output = model(data)
             count += torch.eq(torch.argmax(output, 1), label).float().mean()
         accuracy = count / len(test_iter)
@@ -156,18 +147,3 @@ if __name__ == '__main__':
 
         count += torch.eq(torch.argmax(output, 1), y[u_index]).float().mean()
     print(f'acc: {count / len(data_iter)}')
-
-    # from torch.distributions import Normal, kl_divergence
-    # data_iter = DataLoader(dataset=tep_dataset, batch_size=len(tep_dataset), shuffle=False)
-    # for x, y in data_iter:
-    #     if torch.cuda.is_available():
-    #         x, y = x.cuda(), y.cuda()
-    #         pred = torch.softmax(divider(x), dim=1)
-    #         thresh = find_thresh(pred)
-    #         c_data, u_data, c_index, u_index, w = domain_division(divider, x, use_entropy=False, weighting=True,
-    #                                                               p_threshold=thresh)
-    #         c_data, u_data = c_data.cuda(), u_data.cuda()
-    #
-    #     c_m, c_v, u_m, u_v = c_data.mean(), c_data.var(), u_data.mean(), u_data.var()
-    #     p_c, p_u = Normal(c_m, c_v), Normal(u_m, u_v)
-    #     print(1/2 * kl_divergence(p_c, p_u) + 1/2 * kl_divergence(p_u, p_c))

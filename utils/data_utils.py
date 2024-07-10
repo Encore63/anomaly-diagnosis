@@ -213,3 +213,8 @@ def find_thresh(predictions, max_iterations=1000, tolerance=1e-2):
 
     # 如果在最大迭代次数内未找到精确值，返回最后的中间值
     return (low + high) / 2.0
+
+
+if __name__ == '__main__':
+    data = data_concat(src_path=r'../data/TEP', mode=1, time_win=10)
+    print(data.shape)

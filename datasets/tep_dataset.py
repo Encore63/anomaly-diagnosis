@@ -81,6 +81,7 @@ if __name__ == '__main__':
                          data_dim=4,
                          transform=None,
                          overlap=True)
+    print(dataset[0][0].shape)
     data_iter = DataLoader(dataset, batch_size=128, shuffle=True)
     for x, y in data_iter:
         print(x.shape, y.shape)
