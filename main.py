@@ -1,16 +1,15 @@
 import hydra
 import pathlib
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 from utils.logger import get_time
 from models.resnet import resnet
-from models.tenet import TENet, ReTENet
+from models.tenet import ReTENet
 from models.cnn import CNN
 from models.dagcn import DAGCN
 from models.convformer import LiConvFormer
-from datasets.tep_dataset import TEPDataset
-from training_pipeline import *
-from testing_pipeline import *
+from utils.training_pipeline import *
+from utils.testing_pipeline import *
 
 
 @hydra.main(version_base=None,

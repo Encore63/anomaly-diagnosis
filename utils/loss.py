@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 
 def tsallis_entropy(predictions: torch.Tensor, alpha=2.0, reduction='mean'):
