@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
 
-class SequenceDataset(Dataset):
+class _SequenceDataset(Dataset):
 
     def __init__(self, list_data, test=False, data_dim=2, transform=None):
         self.test = test
@@ -144,28 +144,28 @@ class CWRUDataset(object):
             list_data = get_files(self.data_dir, self.source_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
             train_pd, val_pd = train_test_split(data_pd, test_size=0.2, random_state=40, stratify=data_pd["label"])
-            source_train = SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
-            source_val = SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
+            source_train = _SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
+            source_val = _SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
 
             # get target train and val
             list_data = get_files(self.data_dir, self.target_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
             train_pd, val_pd = train_test_split(data_pd, test_size=0.2, random_state=40, stratify=data_pd["label"])
-            target_train = SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
-            target_val = SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
+            target_train = _SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
+            target_val = _SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
             return source_train, source_val, target_train, target_val
         else:
             # get source train and val
             list_data = get_files(self.data_dir, self.source_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
             train_pd, val_pd = train_test_split(data_pd, test_size=0.2, random_state=40, stratify=data_pd["label"])
-            source_train = SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
-            source_val = SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
+            source_train = _SequenceDataset(list_data=train_pd, data_dim=self.data_dim, transform=self.data_transforms['train'])
+            source_val = _SequenceDataset(list_data=val_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
 
             # get target train and val
             list_data = get_files(self.data_dir, self.target_N)
             data_pd = pd.DataFrame({"data": list_data[0], "label": list_data[1]})
-            target_val = SequenceDataset(list_data=data_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
+            target_val = _SequenceDataset(list_data=data_pd, data_dim=self.data_dim, transform=self.data_transforms['val'])
             return source_train, source_val, target_val
 
 

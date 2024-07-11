@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from tqdm import tqdm
 from utils.average_meter import AverageMeter
-from algorithms import tent, norm, delta, divtent
+from algorithms import tent, norm, delta, divtent, bayesian_norm
 
 
 def test_default(test_iter, model_path, args):
@@ -22,7 +22,10 @@ def test_default(test_iter, model_path, args):
 
 def test_with_adaptive_norm(test_iter, model_path, args):
     model = torch.load(model_path).to(args.device)
-    model = norm.Norm(model)
+    if args.algorithm.bn_type == 'default':
+        model = norm.Norm(model)
+    elif args.algorithm.bn_type == 'bayesian':
+        model = bayesian_norm.BayesianBatchNorm.adapt_model(model, args.algorithm.prior)
     count = 0
 
     with torch.no_grad():

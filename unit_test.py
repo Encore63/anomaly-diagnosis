@@ -53,3 +53,27 @@ class TestAlgorithm(ut.TestCase):
 
             count += torch.eq(torch.argmax(output, 1), y[index]).float().mean()
         print(f'acc: {count / len(data_iter)}')
+
+    def test_param_sensitivity(self):
+        from algorithms.comp import utr
+
+        old_model = torch.load(rf'./checkpoints/best_model_{self.model_name}_{self.source}.pth')
+        pre = deepcopy(old_model.state_dict())
+        new_model = utr.capture_unc(pre, old_model)
+        print(pre['conv1.0.weight'][0], new_model.state_dict()['conv1.0.weight'][0], sep='\n')
+
+        old_count, new_count = 0, 0
+        tep_dataset = get_dataset('tep', [[self.source], [self.target]], 'test')
+        data_iter = DataLoader(dataset=tep_dataset, batch_size=256, shuffle=False)
+
+        for x, y in data_iter:
+            if torch.cuda.is_available():
+                x, y = x.cuda(), y.cuda()
+            old_output = old_model(x)
+            new_output = new_model(x)
+
+            old_count += torch.eq(torch.argmax(old_output, 1), y).float().mean()
+            new_count += torch.eq(torch.argmax(new_output, 1), y).float().mean()
+        print(f'old_acc: {old_count / len(data_iter)}')
+        print(f'new_acc: {new_count / len(data_iter)}')
+        print(f'div: {old_count / len(data_iter) - new_count / len(data_iter)}')

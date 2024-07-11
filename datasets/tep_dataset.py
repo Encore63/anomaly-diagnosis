@@ -7,7 +7,7 @@ from torch.utils.data.dataset import Dataset
 from sklearn.model_selection import train_test_split
 
 
-class TimeSeriesDataset(Dataset):
+class _TimeSeriesDataset(Dataset):
     def __init__(self, list_data, time_win=10, data_dim=3, transform=None):
         self.data = list_data[:, :, :-1]
         self.labels = list_data[:, :, -1]
@@ -77,20 +77,20 @@ class TEPDataset(object):
             source_train, source_val = train_test_split(self.source_data, test_size=0.2,
                                                         random_state=self.random_seed)
             if choice == 'train':
-                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
-                                                              data_dim=self.data_dim, transform=self.transform))
-                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
-                                                            data_dim=self.data_dim, transform=self.transform))
-            elif choice == 'test':
-                _subset = TimeSeriesDataset(self.target_data, time_win=self.time_win,
-                                            data_dim=self.data_dim, transform=self.transform)
-            else:
-                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
-                                                              data_dim=self.data_dim, transform=self.transform))
-                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
-                                                            data_dim=self.data_dim, transform=self.transform))
-                _subset.setdefault('test', TimeSeriesDataset(self.target_data, time_win=self.time_win,
+                _subset.setdefault('train', _TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                               data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', _TimeSeriesDataset(source_val, time_win=self.time_win,
                                                              data_dim=self.data_dim, transform=self.transform))
+            elif choice == 'test':
+                _subset = _TimeSeriesDataset(self.target_data, time_win=self.time_win,
+                                             data_dim=self.data_dim, transform=self.transform)
+            else:
+                _subset.setdefault('train', _TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                               data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', _TimeSeriesDataset(source_val, time_win=self.time_win,
+                                                             data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('test', _TimeSeriesDataset(self.target_data, time_win=self.time_win,
+                                                              data_dim=self.data_dim, transform=self.transform))
             return _subset
         else:
             source_train_val, source_test = train_test_split(self.source_data, test_size=0.1,
@@ -98,20 +98,20 @@ class TEPDataset(object):
             source_train, source_val = train_test_split(source_train_val, test_size=0.2,
                                                         random_state=self.random_seed)
             if choice == 'train':
-                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
-                                                              data_dim=self.data_dim, transform=self.transform))
-                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
-                                                            data_dim=self.data_dim, transform=self.transform))
-            elif choice == 'test':
-                _subset = TimeSeriesDataset(source_test, time_win=self.time_win,
-                                            data_dim=self.data_dim, transform=self.transform)
-            else:
-                _subset.setdefault('train', TimeSeriesDataset(source_train, time_win=self.time_win,
-                                                              data_dim=self.data_dim, transform=self.transform))
-                _subset.setdefault('val', TimeSeriesDataset(source_val, time_win=self.time_win,
-                                                            data_dim=self.data_dim, transform=self.transform))
-                _subset.setdefault('test', TimeSeriesDataset(source_test, time_win=self.time_win,
+                _subset.setdefault('train', _TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                               data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', _TimeSeriesDataset(source_val, time_win=self.time_win,
                                                              data_dim=self.data_dim, transform=self.transform))
+            elif choice == 'test':
+                _subset = _TimeSeriesDataset(source_test, time_win=self.time_win,
+                                             data_dim=self.data_dim, transform=self.transform)
+            else:
+                _subset.setdefault('train', _TimeSeriesDataset(source_train, time_win=self.time_win,
+                                                               data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('val', _TimeSeriesDataset(source_val, time_win=self.time_win,
+                                                             data_dim=self.data_dim, transform=self.transform))
+                _subset.setdefault('test', _TimeSeriesDataset(source_test, time_win=self.time_win,
+                                                              data_dim=self.data_dim, transform=self.transform))
             return _subset
 
 
