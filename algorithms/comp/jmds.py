@@ -99,13 +99,13 @@ def joint_model_data_score(data, model, layer_name, num_classes):
     mppl = all_outputs.gather(1, pred_label.unsqueeze(dim=1)).squeeze()
     weights = lpg * mppl
 
-    return weights
+    return weights, pred_label.to(torch.long)
 
 
 if __name__ == '__main__':
-    from datasets.getter import get_dataset
+    from datasets.tep_dataset import TEPDataset
     from torch.utils.data.dataloader import DataLoader
-    tep_dataset = get_dataset(dataset_name='tep', dataset_mode='test', transfer_task=[1, 2], time_win=10, data_dim=4)
+    tep_dataset = TEPDataset(r'../../data/TEP', transfer_task=[[1], [2]]).get_subset('test')
     data_iter = DataLoader(tep_dataset, batch_size=16, shuffle=True)
     pretrained_model = torch.load(r'../../checkpoints/best_model_resnet_1.pth').cuda()
     for x, y in data_iter:

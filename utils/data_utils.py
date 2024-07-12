@@ -12,6 +12,13 @@ def digit_extract(file_name) -> int:
     return int(''.join(filter(str.isdigit, file_name)))
 
 
+def channel_expand(data, channels=3):
+    # assert len(data.shape) >= 3
+    data_union = [data for _ in range(channels)]
+    pro_data = torch.concat(data_union, dim=1)
+    return pro_data
+
+
 def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
                 neglect=None, num_classes=10, overlap=True) -> np.ndarray:
     """

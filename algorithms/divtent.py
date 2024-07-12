@@ -130,15 +130,17 @@ def forward_and_adapt(x, model, divider, optimizer, out_layer='avg_pool'):
     `Measure entropy of the model prediction, take gradients, and update params.`
     """
     # forward
-    # weight = jmds.joint_model_data_score(x, divider, out_layer, num_classes=10)
+    _, gt = jmds.joint_model_data_score(x, divider, out_layer, num_classes=10)
     weight = (-softmax_entropy(divider(x)) / math.log(10, math.e)) + 1
-    # weight, output = map(torch.autograd.Variable, (weight, output))
 
     # kl_loss = jmds.mix_up(x, weight, output, model)
+    ce = nn.CrossEntropyLoss()
+
     output = model(x)
+    ce_loss = ce(output, gt)
     weight = torch.softmax(weight / 0.2, dim=0)
     ent_loss = (weight * softmax_entropy(output)).mean(0)
-    loss = ent_loss
+    loss = ce_loss
 
     loss.backward()
     optimizer.step()
@@ -150,7 +152,6 @@ def forward_and_adapt(x, model, divider, optimizer, out_layer='avg_pool'):
 def collect_params(model):
     """
     Collect the affine scale + shift parameters from batch norms.
-
 
     Walk the model's modules and collect all batch normalization parameters.
 

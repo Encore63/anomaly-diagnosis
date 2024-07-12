@@ -31,7 +31,7 @@ class _TimeSeriesDataset(Dataset):
     def __getitem__(self, index):
         if self.transform:
             self.data = self.transform(self.data)
-            self.labels = self.transform(self.labels)
+            self.labels = self.labels
         return self.data[index], self.labels[index, 0]
 
     def __len__(self):
@@ -116,6 +116,8 @@ class TEPDataset(object):
 
 
 if __name__ == '__main__':
-    tep_dataset = TEPDataset(src_path=r'../data/TEP', transfer_task=[[1], [2]])
+    from utils.data_utils import channel_expand
+
+    tep_dataset = TEPDataset(src_path=r'../data/TEP', transfer_task=[[1], [2]], transform=channel_expand)
     subset = tep_dataset.get_subset('test')
-    print(len(subset))
+    print(subset[0][0].shape)

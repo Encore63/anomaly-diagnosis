@@ -8,6 +8,7 @@ from models.tenet import ReTENet
 from models.cnn import CNN
 from models.dagcn import DAGCN
 from models.convformer import LiConvFormer
+from utils.data_utils import channel_expand
 from utils.training_pipeline import *
 from utils.testing_pipeline import *
 
@@ -56,7 +57,8 @@ def main(cfg: DictConfig):
                               seed=cfg.random_seed,
                               data_dim=cfg.dataset.dim,
                               time_win=cfg.dataset.time_window,
-                              overlap=cfg.dataset.overlap)
+                              overlap=cfg.dataset.overlap,
+                              transform=channel_expand)
     datasets = dataset_tool.get_subset()
 
     dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.util.train.batch_size, shuffle=True))
