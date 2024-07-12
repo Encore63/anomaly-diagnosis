@@ -6,9 +6,9 @@ from utils.logger import get_time
 from models.resnet import resnet
 from models.tenet import ReTENet
 from models.cnn import CNN
+from models.tcn import TCN
 from models.dagcn import DAGCN
 from models.convformer import LiConvFormer
-from utils.data_utils import channel_expand
 from utils.training_pipeline import *
 from utils.testing_pipeline import *
 
@@ -32,6 +32,12 @@ def main(cfg: DictConfig):
         model = ReTENet(num_classes=cfg.model.num_classes).to(cfg.device)
     elif cfg.model.name == 'CNN':
         model = CNN(in_channels=cfg.dataset.time_window).to(cfg.device)
+    elif cfg.model.name == 'TCN':
+        model = TCN(input_size=cfg.model.input_size,
+                    output_size=cfg.model.output_size,
+                    num_channels=[50] * 8,
+                    kernel_size=3,
+                    dropout=0.2).to(cfg.device)
     elif cfg.model.name == 'ConvFormer':
         model = LiConvFormer(use_residual=cfg.model.use_residual,
                              in_channel=cfg.model.in_channels,
@@ -57,8 +63,8 @@ def main(cfg: DictConfig):
                               seed=cfg.random_seed,
                               data_dim=cfg.dataset.dim,
                               time_win=cfg.dataset.time_window,
-                              overlap=cfg.dataset.overlap,
-                              transform=channel_expand)
+                              num_classes=cfg.dataset.num_classes,
+                              overlap=cfg.dataset.overlap)
     datasets = dataset_tool.get_subset()
 
     dataloaders.setdefault('train', DataLoader(datasets['train'], batch_size=cfg.util.train.batch_size, shuffle=True))

@@ -124,5 +124,5 @@ if __name__ == '__main__':
     tep_dataset = TEPDataset(src_path=r'./data/TEP', transfer_task=[[1], [2]]).get_subset('test')
     analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
                       layer_name='conv5_x', algorithm='tent')
-    # analyze.embedding_analyze()
+    analyze.embedding_analyze()
     # analyze.domain_divergence(data_path=r'./data/TEP', domains=[1, 2, 3, 4, 5, 6], dim=50)

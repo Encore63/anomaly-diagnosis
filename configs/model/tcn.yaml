@@ -1,0 +1,5 @@
+name: 'TCN'
+suffix: 'tcn'
+input_size: 10
+output_size: 10
+save_path: './checkpoints'
