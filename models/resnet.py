@@ -165,6 +165,6 @@ def resnet(in_channels, num_classes, num_block=(2, 2, 2, 2)):
 
 
 if __name__ == '__main__':
-    model = resnet(in_channels=50, num_classes=10)
-    data = torch.randn((16, 1, 50, 10))
+    model = resnet(in_channels=10, num_classes=10)
+    data = torch.randn((16, 10, 50, 1))
     summary(model, input_data=data)

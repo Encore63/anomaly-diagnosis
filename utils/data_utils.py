@@ -19,6 +19,26 @@ def channel_expand(data, channels=3):
     return pro_data
 
 
+def shape_rearrange(data, in_channel='time'):
+    from einops import rearrange
+
+    if in_channel == 'sensor':
+        if len(data.shape == 3):
+            data = rearrange(data, 'B T S -> B S T')
+            return data
+        elif len(data.shape) == 4:
+            data = rearrange(data, 'B C T S -> B S T C')
+            return data
+    elif in_channel == 'time':
+        if len(data.shape) == 3:
+            return data
+        elif len(data.shape) == 4:
+            data = rearrange(data, 'B C T S -> B T S C')
+            return data
+    else:
+        raise ValueError('in_channel must be sensor or time')
+
+
 def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
                 neglect=None, num_classes=10, overlap=True) -> np.ndarray:
     """

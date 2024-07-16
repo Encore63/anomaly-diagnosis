@@ -58,7 +58,7 @@ def forward_and_adapt(x, model, optimizer):
     # forward
     outputs = model(x)
     # adapt
-    loss = conjugate_loss(outputs).mean(0)
+    loss = softmax_entropy(outputs).mean(0)
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
