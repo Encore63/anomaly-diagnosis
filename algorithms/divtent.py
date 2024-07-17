@@ -7,6 +7,7 @@ from copy import deepcopy
 from algorithms.comp import jmds
 from algorithms.comp.sam import SAM
 from algorithms.comp import trans_norm
+from utils.data_utils import domain_merge, domain_division
 
 
 @torch.enable_grad()
@@ -75,52 +76,58 @@ def softmax_entropy(x: torch.Tensor) -> torch.Tensor:
     return -(x.softmax(1) * x.log_softmax(1)).sum(1)
 
 
-def division_loss(probs):
-    msoftmax = probs.mean(dim=0)
-    div_loss = torch.sum(-msoftmax * torch.log(msoftmax + 1e-5))
-    return div_loss
+def attention_weight(pred):
+    p = torch.softmax(pred, 1)
+    l_p = torch.log_softmax(pred, 1)
+    w = (p * l_p).sum(1) + 1
+    return w
 
 
-# @torch.enable_grad()  # ensure grads in possible no grad context for testing
-# def forward_and_adapt(x, model, divider, optimizer, use_entropy, weighting):
-#     """
-#     Forward and adapt model on batch of data.
-#     `Measure entropy of the model prediction, take gradients, and update params.`
-#     """
-#     # forward
-#     certain_data, uncertain_data, certain_idx, uncertain_idx, weight = domain_division(divider, x,
-#                                                                                        use_entropy=use_entropy,
-#                                                                                        weighting=weighting)
-#     # domain_idx = {'source': certain_idx,
-#     #               'target': uncertain_idx}
-#     # replace_tn_layer(model, domain_idx)
-#     # print(model)
-#     # outputs = model(x)
-#
-#     u_outputs = model(uncertain_data)
-#     # model = configure_model(model, True)
-#     c_outputs = model(certain_data)
-#     if len(c_outputs.shape) == 1:
-#         c_outputs = c_outputs.unsqueeze(dim=0)
-#     if len(u_outputs.shape) == 1:
-#         u_outputs = u_outputs.unsqueeze(dim=0)
-#     outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
-#
-#     # adapt
-#     c_loss = softmax_entropy(c_outputs).mean(0)
-#     u_loss = softmax_entropy(u_outputs).mean(0)
-#     loss = c_loss * weight[0] + u_loss * weight[1]
-#     # loss = softmax_entropy(outputs).mean(0)
-#     loss.backward()
-#     if isinstance(optimizer, SAM):
-#         optimizer.first_step(zero_grad=True)
-#         (softmax_entropy(model(uncertain_data)).mean(0) - softmax_entropy(model(certain_data)).mean(0)).backward()
-#         optimizer.second_step(zero_grad=True)
-#     else:
-#         optimizer.step()
-#         optimizer.zero_grad()
-#
-#     return outputs
+def division_loss(output):
+    ones = torch.ones((output.shape[0],)) / output.shape[1]
+    probs = torch.softmax(output, dim=1)
+
+
+@torch.enable_grad()  # ensure grads in possible no grad context for testing
+def forward_and_adapt_by_division(x, model, divider, optimizer, use_entropy, weighting):
+    """
+    Forward and adapt model on batch of data.
+    `Measure entropy of the model prediction, take gradients, and update params.`
+    """
+    # forward
+    certain_data, uncertain_data, certain_idx, uncertain_idx, weight = domain_division(divider, x,
+                                                                                       use_entropy=use_entropy,
+                                                                                       weighting=weighting)
+    # domain_idx = {'source': certain_idx,
+    #               'target': uncertain_idx}
+    # replace_tn_layer(model, domain_idx)
+    # print(model)
+    # outputs = model(x)
+
+    u_outputs = model(uncertain_data)
+    # model = configure_model(model, True)
+    c_outputs = model(certain_data)
+    if len(c_outputs.shape) == 1:
+        c_outputs = c_outputs.unsqueeze(dim=0)
+    if len(u_outputs.shape) == 1:
+        u_outputs = u_outputs.unsqueeze(dim=0)
+    outputs = domain_merge(c_outputs, u_outputs, certain_idx, uncertain_idx)
+
+    # adapt
+    c_loss = softmax_entropy(c_outputs).mean(0)
+    u_loss = softmax_entropy(u_outputs).mean(0)
+    loss = c_loss * weight[0] + u_loss * weight[1]
+    # loss = softmax_entropy(outputs).mean(0)
+    loss.backward()
+    if isinstance(optimizer, SAM):
+        optimizer.first_step(zero_grad=True)
+        (softmax_entropy(model(uncertain_data)).mean(0) - softmax_entropy(model(certain_data)).mean(0)).backward()
+        optimizer.second_step(zero_grad=True)
+    else:
+        optimizer.step()
+        optimizer.zero_grad()
+
+    return outputs
 
 
 @torch.enable_grad()
@@ -129,18 +136,20 @@ def forward_and_adapt(x, model, divider, optimizer, out_layer='avg_pool'):
     Forward and adapt model on batch of data.
     `Measure entropy of the model prediction, take gradients, and update params.`
     """
+    from algorithms.comp import utr
+
     # forward
-    _, gt = jmds.joint_model_data_score(x, divider, out_layer, num_classes=10)
-    weight = (-softmax_entropy(divider(x)) / math.log(10, math.e)) + 1
+    # _, gt = jmds.joint_model_data_score(x, divider, out_layer, num_classes=10)
+    weight = attention_weight(divider(x))
 
     # kl_loss = jmds.mix_up(x, weight, output, model)
-    ce = nn.CrossEntropyLoss()
+    # ce = nn.CrossEntropyLoss()
 
     output = model(x)
-    ce_loss = ce(output, gt)
-    weight = torch.softmax(weight / 0.2, dim=0)
+    # ce_loss = ce(output, gt)
+    # weight = torch.softmax(weight / 0.2, dim=0)
     ent_loss = (weight * softmax_entropy(output)).mean(0)
-    loss = ce_loss
+    loss = ent_loss
 
     loss.backward()
     optimizer.step()

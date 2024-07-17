@@ -11,7 +11,7 @@ class BayesianBatchNorm(nn.Module):
         if parent is None:
             return []
         for name, child in parent.named_children():
-            if isinstance(child, nn.BatchNorm2d):
+            if isinstance(child, nn.BatchNorm2d) or isinstance(child, nn.BatchNorm1d):
                 module = BayesianBatchNorm(child, prior)
                 replace_mods.append((parent, name, module))
             else:
@@ -40,12 +40,13 @@ class BayesianBatchNorm(nn.Module):
         # if self.norm.training is True:
         self.norm(input)
         self.norm.eval()
-        source_distribution = torch.distributions.MultivariateNormal(self.layer.running_mean, (
-                self.layer.running_var + 0.00001) * torch.eye(
-            self.layer.running_var.shape[0]).cuda())
-        target_distribution = torch.distributions.MultivariateNormal(self.norm.running_mean, (
-                self.norm.running_var + 0.00001) * torch.eye(
-            self.norm.running_var.shape[0]).cuda())
+        source_distribution = torch.distributions.MultivariateNormal(self.layer.running_mean,
+                                                                     (self.layer.running_var + 0.00001) *
+                                                                     torch.eye(self.layer.running_var.shape[0])
+                                                                     .cuda())
+        target_distribution = torch.distributions.MultivariateNormal(self.norm.running_mean, (self.norm.running_var + 0.00001) *
+                                                                     torch.eye(self.norm.running_var.shape[0])
+                                                                     .cuda())
 
         self.div = (0.5 * torch.distributions.kl_divergence(source_distribution,
                                                             target_distribution) +
@@ -59,8 +60,9 @@ class BayesianBatchNorm(nn.Module):
         running_var = (self.prior * self.layer.running_var) + (1 - self.prior) * self.norm.running_var + self.prior * (
                 1 - self.prior) * ((self.layer.running_mean - self.norm.running_mean) ** (2))
 
-        output = (input - running_mean[None, :, None, None]) / torch.sqrt(
-            running_var[None, :, None, None] + self.layer.eps) * self.layer.weight[None, :, None,
-                                                                 None] + self.layer.bias[None, :, None, None]
+        output = ((input - running_mean[None, :, None, None]) / torch.sqrt(
+            running_var[None, :, None, None] + self.layer.eps) *
+                  self.layer.weight[None, :, None, None] +
+                  self.layer.bias[None, :, None, None])
 
         return output

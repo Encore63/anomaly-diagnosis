@@ -54,29 +54,30 @@ def train_default(train_iter, eval_iter, model, criterion, args):
             global_train_step += 1
         scheduler.step()
 
-        # torch.cuda.empty_cache()
-
         model.eval()
         eval_loop = tqdm(enumerate(eval_iter), total=len(eval_iter))
         loss_meter.reset()
         acc_meter.reset()
-        for _, (data, labels) in eval_loop:
-            if torch.cuda.is_available():
-                data, labels = data.cuda(), labels.cuda()
-            output = model(data)
-            loss = criterion(output, labels)
-            loss_meter.update(loss, args.util.train.batch_size)
 
-            accuracy = torch.eq(torch.argmax(output, 1), labels).float().mean()
-            acc_meter.update(accuracy, args.util.train.batch_size)
+        with torch.no_grad():
+            for _, (data, labels) in eval_loop:
+                if torch.cuda.is_available():
+                    data, labels = data.cuda(), labels.cuda()
+                output = model(data)
+                loss = criterion(output, labels)
+                loss_meter.update(loss, args.util.train.batch_size)
 
-            if args.write_flag:
-                writer.add_scalar(tag='validation loss', scalar_value=loss.item(), global_step=global_eval_step)
-                writer.add_scalar(tag='validation accuracy', scalar_value=accuracy, global_step=global_eval_step)
-            eval_loop.set_description('Eval  [{}/{}]'.format('{: <2d}'.format(epoch + 1), args.util.train.epochs))
-            eval_loop.set_postfix(acc='{:.4f}'.format(acc_meter.avg),
-                                  loss='{:.4f}'.format(loss_meter.avg))
-            global_eval_step += 1
+                accuracy = torch.eq(torch.argmax(output, 1), labels).float().mean()
+                acc_meter.update(accuracy, args.util.train.batch_size)
+
+                if args.write_flag:
+                    writer.add_scalar(tag='validation loss', scalar_value=loss.item(), global_step=global_eval_step)
+                    writer.add_scalar(tag='validation accuracy', scalar_value=accuracy, global_step=global_eval_step)
+                eval_loop.set_description('Eval  [{}/{}]'.format('{: <2d}'.format(epoch + 1), args.util.train.epochs))
+                eval_loop.set_postfix(acc='{:.4f}'.format(acc_meter.avg),
+                                      loss='{:.4f}'.format(loss_meter.avg))
+                global_eval_step += 1
+
         if args.log_flag:
             log_tool.info(f'[EPOCH {epoch + 1: <2d}/{args.util.train.epochs}] ACC: {acc_meter.avg * 100:.4f}%')
 
@@ -84,6 +85,8 @@ def train_default(train_iter, eval_iter, model, criterion, args):
         if stopping_tool.early_stop:
             print('Early Stopping ...')
             break
+
+        torch.cuda.empty_cache()
 
     if args.write_flag:
         writer.close()

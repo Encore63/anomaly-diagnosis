@@ -31,7 +31,9 @@ def euclidean_dist(x, y):
 def get_mean(f1, f2):
     f1 = f1.view(f1.shape[0], f1.shape[1], -1).cpu().detach().numpy()
     f2 = f2.view(f2.shape[0], f2.shape[1], -1).cpu().detach().numpy()
+    # batch size
     x = f1.shape[0]
+    # channels
     n = f1.shape[1]
 
     mean = []
@@ -69,6 +71,8 @@ def calc_utr_d(_model, _data):
     _model = capture_unc(pre_param, _model)
     output = _model(_data)
     utr_d: torch.Tensor = 1 / 4 * get_mean(pre_output, output).cuda()
+
+    # q_utr_d
     utr_d = torch.sigmoid(-utr_d)
 
     return utr_d
