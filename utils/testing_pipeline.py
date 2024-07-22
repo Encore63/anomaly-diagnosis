@@ -79,7 +79,7 @@ def test_with_arm(test_iter, model_path, args):
     print('(ARM) Test Accuracy: {:.4f}%'.format(accuracy * 100))
 
 
-def test_with_data_division(test_iter, model_path, args):
+def test_with_data_division(test_iter, model_path, args, mu=None, sigma=None):
     model = torch.load(model_path).to(args.device)
     model = divtent.configure_model(model)
     params, param_names = divtent.collect_params(model)
@@ -87,7 +87,8 @@ def test_with_data_division(test_iter, model_path, args):
     # optimizer = SAM(model.parameters(), base_optimizer=torch.optim.Adam)
     model = divtent.DivTent(model, optimizer, steps=1,
                             use_entropy=args.algorithm.use_entropy,
-                            weighting=args.algorithm.weighting)
+                            weighting=args.algorithm.weighting,
+                            mu=mu, sigma=sigma)
 
     count = 0
     with torch.no_grad():

@@ -1,6 +1,7 @@
 import hydra
 import pathlib
 
+from algorithms.comp import cafa
 from omegaconf import DictConfig
 from utils.logger import get_time
 from models.resnet import resnet
@@ -116,9 +117,13 @@ def main(cfg: DictConfig):
                             args=cfg)
 
         if testing_pipeline == 'division':
+            mu, sigma = cafa.get_prior_classed_statistics(
+                model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
+                device=cfg.device, source_iter=dataloaders['train']
+            ) if cfg.algorithm.prior_statistics else (None, None)
             test_with_data_division(test_iter=dataloaders['test'],
                                     model_path=pathlib.Path(cfg.model.save_path).joinpath(model_name),
-                                    args=cfg)
+                                    args=cfg, mu=mu, sigma=sigma)
 
 
 if __name__ == '__main__':

@@ -116,8 +116,14 @@ class TEPDataset(object):
 
 
 if __name__ == '__main__':
+    from algorithms.divtent import softmax_entropy
     from utils.data_utils import channel_expand
 
-    tep_dataset = TEPDataset(src_path=r'../data/TEP', transfer_task=[[1], [2]], transform=channel_expand)
-    subset = tep_dataset.get_subset('test')
-    print(subset[0][0].shape)
+    tep_dataset = TEPDataset(src_path=r'../data/TEP', transfer_task=[[1], [2]], neglect=[2, 4, 7])
+    subset = tep_dataset.get_subset()
+    source = subset['train'].labels
+    target = subset['test'].labels
+    print(source.shape, target.shape)
+    s_ent = softmax_entropy(source.to(torch.float32)).mean(0)
+    t_ent = softmax_entropy(target.to(torch.float32)).mean(0)
+    print(s_ent, t_ent)

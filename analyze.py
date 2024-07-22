@@ -71,7 +71,7 @@ class Analyze(object):
                 self.model(x)
             embeddings = hook_manager.get_activations(x)
             data = embeddings[self.layer_name].cpu()
-            print(data.shape, y.shape)
+            print(data.shape, y)
             plot_embedding(data, y, title=title, **kwargs)
             plt.show()
         hook_manager.remove_hooks()
@@ -120,9 +120,9 @@ class Analyze(object):
 
 
 if __name__ == '__main__':
-    pretrained_model = torch.load(r'checkpoints/best_model_resnet_1.pth')
-    tep_dataset = TEPDataset(src_path=r'./data/TEP', transfer_task=[[1], [2]]).get_subset('test')
+    pretrained_model = torch.load(r'checkpoints/best_model_resnet_5.pth')
+    tep_dataset = TEPDataset(src_path=r'./data/TEP', transfer_task=[[1], [3]]).get_subset('test')
     analyze = Analyze(dataset=tep_dataset, model=pretrained_model,
-                      layer_name='conv5_x', algorithm='tent')
+                      layer_name='conv5_x', algorithm='division')
     analyze.embedding_analyze()
-    # analyze.domain_divergence(data_path=r'./data/TEP', domains=[1, 2, 3, 4, 5, 6], dim=50)
+    # analyze.domain_divergence(data_path=r'./data/TEP', domains=[1, 2, 3, 4, 5, 6], dim=10)

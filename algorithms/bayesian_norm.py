@@ -44,7 +44,8 @@ class BayesianBatchNorm(nn.Module):
                                                                      (self.layer.running_var + 0.00001) *
                                                                      torch.eye(self.layer.running_var.shape[0])
                                                                      .cuda())
-        target_distribution = torch.distributions.MultivariateNormal(self.norm.running_mean, (self.norm.running_var + 0.00001) *
+        target_distribution = torch.distributions.MultivariateNormal(self.norm.running_mean,
+                                                                     (self.norm.running_var + 0.00001) *
                                                                      torch.eye(self.norm.running_var.shape[0])
                                                                      .cuda())
 

@@ -4,6 +4,7 @@ import torch.jit
 import torch.nn as nn
 
 from copy import deepcopy
+from algorithms.comp import cafa
 from algorithms.comp import jmds
 from algorithms.comp.sam import SAM
 from algorithms.comp import trans_norm
@@ -11,7 +12,7 @@ from utils.data_utils import domain_merge, domain_division
 
 
 @torch.enable_grad()
-def classifier_adapt(x: torch.Tensor, model: nn.Module, optimizer: torch.optim.Optimizer):
+def classifier_adapt(x: torch.Tensor, model: nn.Module, optimizer: torch.optim.Optimizer, mu, sigma):
     # configure classifier
     model.train()
     model.requires_grad_(False)
@@ -20,21 +21,17 @@ def classifier_adapt(x: torch.Tensor, model: nn.Module, optimizer: torch.optim.O
             m.requires_grad_(True)
 
     output = model(x)
-    loss = (torch.softmax(output, dim=1) * torch.log_softmax(output, dim=1)).sum(dim=1).mean(0)
+    loss = cafa.class_aware_feature_alignment_loss(x, model, mu, sigma)
     optimizer.zero_grad()
     loss.backward()
-    if isinstance(optimizer, SAM):
-        optimizer.first_step(zero_grad=True)
-        (torch.softmax(output, dim=1) * torch.log_softmax(output, dim=1)).sum(dim=1).mean(0).backward()
-        optimizer.second_step(zero_grad=True)
-    else:
-        optimizer.step()
+    optimizer.step()
 
-    return output.detach()
+    return output
 
 
 class DivTent(nn.Module):
-    def __init__(self, model, optimizer, steps=1, episodic=False, use_entropy=False, weighting=False):
+    def __init__(self, model, optimizer, steps=1, episodic=False, use_entropy=False,
+                 weighting=False, mu=None, sigma=None):
         super().__init__()
         self.divider = deepcopy(model).eval()
         self.model = configure_model(model)
@@ -44,11 +41,15 @@ class DivTent(nn.Module):
         self.episodic = episodic
         self.use_entropy = use_entropy
         self.weighting = weighting
+        self.mu = mu
+        self.sigma = sigma
 
         # note: if the model is never reset, like for continual adaptation,
         # then skipping the state copy would save memory
-        self.model_state, self.optimizer_state = \
-            copy_model_and_optimizer(self.model, self.optimizer)
+        (
+            self.model_state,
+            self.optimizer_state
+        ) = copy_model_and_optimizer(self.model, self.optimizer)
 
     def forward(self, x):
         if self.episodic:
@@ -57,7 +58,7 @@ class DivTent(nn.Module):
         for _ in range(self.steps):
             # outputs = forward_and_adapt(x, self.model, self.divider, self.optimizer,
             #                             self.use_entropy, self.weighting)
-            outputs = forward_and_adapt(x, self.model, self.divider, self.optimizer)
+            outputs = forward_and_adapt(x, self.model, self.divider, self.optimizer, self.mu, self.sigma)
 
         return outputs
 
@@ -79,13 +80,8 @@ def softmax_entropy(x: torch.Tensor) -> torch.Tensor:
 def attention_weight(pred):
     p = torch.softmax(pred, 1)
     l_p = torch.log_softmax(pred, 1)
-    w = (p * l_p).sum(1) + 1
+    w = ((p * l_p) / math.log(p.size(-1), math.e)).sum(1) + 1
     return w
-
-
-def division_loss(output):
-    ones = torch.ones((output.shape[0],)) / output.shape[1]
-    probs = torch.softmax(output, dim=1)
 
 
 @torch.enable_grad()  # ensure grads in possible no grad context for testing
@@ -131,7 +127,7 @@ def forward_and_adapt_by_division(x, model, divider, optimizer, use_entropy, wei
 
 
 @torch.enable_grad()
-def forward_and_adapt(x, model, divider, optimizer, out_layer='avg_pool'):
+def forward_and_adapt(x, model, prior, optimizer, mu=None, sigma=None):
     """
     Forward and adapt model on batch of data.
     `Measure entropy of the model prediction, take gradients, and update params.`
@@ -139,15 +135,15 @@ def forward_and_adapt(x, model, divider, optimizer, out_layer='avg_pool'):
     from algorithms.comp import utr
 
     # forward
-    # _, gt = jmds.joint_model_data_score(x, divider, out_layer, num_classes=10)
-    weight = attention_weight(divider(x))
+    # weight, gt = jmds.joint_model_data_score(x, prior, 'avg_pool', num_classes=10)
+    weight = attention_weight(prior(x))
 
-    # kl_loss = jmds.mix_up(x, weight, output, model)
     # ce = nn.CrossEntropyLoss()
 
     output = model(x)
     # ce_loss = ce(output, gt)
-    # weight = torch.softmax(weight / 0.2, dim=0)
+    weight = torch.softmax(weight / 0.1, dim=0)
+    # class_alignment_loss = cafa.class_aware_feature_alignment_loss(x, model, mu, sigma)
     ent_loss = (weight * softmax_entropy(output)).mean(0)
     loss = ent_loss
 
@@ -214,7 +210,7 @@ def replace_tn_layer(model, domain_idx):
             replace_tn_layer(module, domain_idx)  # 递归替换子模块
 
 
-def configure_model(model, freeze=False):
+def configure_model(model):
     """
     Configure model for use with div-tent.
     """
@@ -225,18 +221,15 @@ def configure_model(model, freeze=False):
     # configure norm for tent updates: enable grad + force batch statistics
     for n, m in model.named_modules():
         if n == 'fc' or n == 'classifier':
+            print('classifier enable grad')
             m.requires_grad_(True)
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
             m.requires_grad_(True)
-            if freeze:
-                m.training = False
-            else:
-                m.training = True
-                # force use of batch stats in train and eval modes
-                m.track_running_stats = False
-                m.running_mean = None
-                m.running_var = None
+            # force use of batch stats in train and eval modes
+            m.track_running_stats = False
+            m.running_mean = None
+            m.running_var = None
     return model
 
 

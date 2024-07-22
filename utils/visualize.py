@@ -8,7 +8,9 @@ from matplotlib import pyplot as plt
 
 
 def plot_similarity_matrix(data, cmap='coolwarm'):
-    ax = sns.heatmap(data, cmap=cmap)
+    ax = sns.heatmap(data, cmap=cmap,
+                     xticklabels=[1, 2, 3, 4, 5, 6],
+                     yticklabels=[1, 2, 3, 4, 5, 6])
     ax.set_title('domain similarity')
     plt.show()
 
@@ -58,7 +60,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.show()
 
 
-def plot_embedding(data, label=None, num_classes=10, perplexity=30.0, title='t-SNE') -> plt.Figure:
+def plot_embedding(data, label=None, num_classes=10, perplexity=30.0, title='t-SNE', digit_mark=False) -> plt.Figure:
     print('Plotting embeddings ...')
     tsne = TSNE(n_components=2, init='pca', random_state=0, perplexity=perplexity)
     if len(data.shape) > 2:
@@ -81,6 +83,14 @@ def plot_embedding(data, label=None, num_classes=10, perplexity=30.0, title='t-S
 
     fig = plt.figure(figsize=(10, 7))
     ax = plt.subplot(111)
-    plt.scatter(data[:, 0], data[:, 1], s=size, color=plt.cm.Set3(label), marker='o')
+
+    if digit_mark:
+        for i in range(data.shape[0]):
+            plt.text(data[i, 0], data[i, 1], str(label[i].item()),
+                     color=plt.cm.Set3(label[i]),
+                     fontdict={'weight': 'bold', 'size': 9})
+    else:
+        plt.scatter(data[:, 0], data[:, 1], s=size, color=plt.cm.Set3(label), marker='o')
+
     plt.title(title)
     return fig

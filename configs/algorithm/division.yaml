@@ -1,3 +1,4 @@
 steps: 1
 use_entropy: True
 weighting: True
+prior_statistics: False

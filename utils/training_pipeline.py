@@ -86,8 +86,6 @@ def train_default(train_iter, eval_iter, model, criterion, args):
             print('Early Stopping ...')
             break
 
-        torch.cuda.empty_cache()
-
     if args.write_flag:
         writer.close()
 
