@@ -40,7 +40,7 @@ def shape_rearrange(data, in_channel='time'):
 
 
 def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
-                neglect=None, num_classes=10, overlap=True) -> np.ndarray:
+                neglect=None, num_classes=10, overlap=True, weight_var=False) -> np.ndarray:
     """
     数据预处理及标准化
     :param src_path: 数据路径
@@ -50,6 +50,7 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
     :param time_win: 时间窗口大小 (default 10)
     :param num_classes: 类别数量 (default 10)
     :param overlap: 数据重叠 (default True)
+    :param weight_var: 变量加权 (default False)
     :return: 经预处理后的数据
     """
     scaler = StandardScaler()
@@ -240,3 +241,35 @@ def find_thresh(predictions, max_iterations=1000, tolerance=1e-2):
 
     # 如果在最大迭代次数内未找到精确值，返回最后的中间值
     return (low + high) / 2.0
+
+
+def _hotelling_t_square(input_0, input_1, neg_var=None):
+    n_0, n_1 = input_0.shape[0], input_1.shape[0]
+    assert n_0 == n_1, "Invalid data shape!"
+    if neg_var is not None:
+        index = np.ones(input_0.shape[-1])
+        index[neg_var] = 0
+        index = list(map(bool, index))
+        input_0 = input_0[:, index]
+        input_1 = input_1[:, index]
+
+    mu_0, mu_1 = input_0.mean(0).numpy(), input_1.mean(0).numpy()
+    inv_cov = np.linalg.inv(np.cov(np.concatenate([input_0, input_1]).T))
+    coeff = (n_0 * n_1) / (n_0 + n_1)
+    delta = mu_0 - mu_1
+    t_square = coeff + (delta.T @ inv_cov @ delta)
+    return t_square
+
+
+def variable_weighting(input_0, input_1, neg_var=None):
+    n_0, n_1 = input_0.shape[0], input_1.shape[0]
+    a = n_0 + n_1 - 2
+    m = input_0.shape[-1]
+    t_square_all = _hotelling_t_square(input_0, input_1)
+    t_square_nk = _hotelling_t_square(input_0, input_1, neg_var)
+    var_w = (a - m + 1) * ((t_square_all - t_square_nk) / (t_square_nk + a))
+    return var_w
+
+
+if __name__ == '__main__':
+    data = data_concat(r'../data/TEP', mode=1)

@@ -133,17 +133,16 @@ class TestAlgorithm(ut.TestCase):
             #     for m in u_model.modules():
             #         if isinstance(m, nn.BatchNorm2d):
             #             m.requires_grad_(True)
-            rand_idx = torch.randperm(256)[:128]
 
-            c_output = c_model(x[rand_idx])
-            u_output = u_model(x[rand_idx])
-            a_output = model(x[rand_idx])
-            s_output = source(x[rand_idx])
+            c_output = c_model(x)
+            u_output = u_model(x)
+            a_output = model(x)
+            s_output = source(x)
 
-            c_count += torch.eq(torch.argmax(c_output, 1), y[rand_idx]).float().mean()
-            u_count += torch.eq(torch.argmax(u_output, 1), y[rand_idx]).float().mean()
-            s_count += torch.eq(torch.argmax(s_output, 1), y[rand_idx]).float().mean()
-            a_count += torch.eq(torch.argmax(a_output, 1), y[rand_idx]).float().mean()
+            c_count += torch.eq(torch.argmax(c_output, 1), y).float().mean()
+            u_count += torch.eq(torch.argmax(u_output, 1), y).float().mean()
+            s_count += torch.eq(torch.argmax(s_output, 1), y).float().mean()
+            a_count += torch.eq(torch.argmax(a_output, 1), y).float().mean()
         print(f'acc (normed by statistics of certain data): {c_count / len(data_iter)}')
         print(f'acc (normed by statistics of uncertain data): {u_count / len(data_iter)}')
         print(f'acc (normed by statistics of all data): {a_count / len(data_iter)}')
