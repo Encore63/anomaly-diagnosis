@@ -6,7 +6,7 @@ import torch.nn as nn
 from copy import deepcopy
 from algorithms.comp import cafa
 from algorithms.comp import jmds
-from algorithms.comp.sam import SAM
+from algorithms.comp.sam import SAMs
 from algorithms.comp import trans_norm
 from utils.data_utils import domain_merge, domain_division
 

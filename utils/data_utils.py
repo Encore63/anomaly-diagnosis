@@ -253,7 +253,7 @@ def _hotelling_t_square(input_0, input_1, neg_var=None):
         input_0 = input_0[:, index]
         input_1 = input_1[:, index]
 
-    mu_0, mu_1 = input_0.mean(0).numpy(), input_1.mean(0).numpy()
+    mu_0, mu_1 = input_0.mean(0), input_1.mean(0)
     inv_cov = np.linalg.inv(np.cov(np.concatenate([input_0, input_1]).T))
     coeff = (n_0 * n_1) / (n_0 + n_1)
     delta = mu_0 - mu_1
@@ -272,4 +272,24 @@ def variable_weighting(input_0, input_1, neg_var=None):
 
 
 if __name__ == '__main__':
+    import time
+
     data = data_concat(r'../data/TEP', mode=1)
+    normal = pd.read_csv(pathlib.Path(r'../data/TEP/mode1_new').joinpath('mode1_d00.csv'))
+    fault = pd.read_csv(pathlib.Path(r'../data/TEP/mode1_new').joinpath('mode1_d01.csv'))
+    normal, fault = np.array(normal)[1:600, :], np.array(fault)[1:600, :]
+    normal = np.concatenate((normal[0:600, :45],
+                             normal[0:600, 46:49],
+                             normal[0:600, 50:52]), axis=1)
+    fault = np.concatenate((fault[0:600, :45],
+                            fault[0:600, 46:49],
+                            fault[0:600, 50:52]), axis=1)
+    start = time.time()
+    weights = []
+    for i in range(normal.shape[-1]):
+        w = variable_weighting(normal, fault, i)
+        weights.append(w)
+        print("sensor {}: {}".format(i + 1, w))
+    end = time.time()
+    print("time consumption: {}".format(end - start))
+    print("weights mean: {}".format(sum(weights) / len(weights)))
