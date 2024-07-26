@@ -6,7 +6,7 @@ import torch.nn as nn
 from copy import deepcopy
 from algorithms.comp import cafa
 from algorithms.comp import jmds
-from algorithms.comp.sam import SAMs
+from algorithms.comp.sam import SAM
 from algorithms.comp import trans_norm
 from utils.data_utils import domain_merge, domain_division
 
@@ -138,11 +138,9 @@ def forward_and_adapt(x, model, prior, optimizer, mu=None, sigma=None):
     # weight, gt = jmds.joint_model_data_score(x, prior, 'avg_pool', num_classes=10)
     weight = attention_weight(prior(x))
 
-    # ce = nn.CrossEntropyLoss()
-
     output = model(x)
-    # ce_loss = ce(output, gt)
-    weight = torch.softmax(weight / 0.1, dim=0)
+    # ce_loss = jmds.mix_up(x, weight, output, model)
+    # weight = torch.softmax(weight / 0.1, dim=0)
     # class_alignment_loss = cafa.class_aware_feature_alignment_loss(x, model, mu, sigma)
     ent_loss = (weight * softmax_entropy(output)).mean(0)
     loss = ent_loss
@@ -221,7 +219,6 @@ def configure_model(model):
     # configure norm for tent updates: enable grad + force batch statistics
     for n, m in model.named_modules():
         if n == 'fc' or n == 'classifier':
-            print('classifier enable grad')
             m.requires_grad_(True)
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):

@@ -10,7 +10,7 @@ def gmm(all_fea, pi, mu, all_output):
     Cov = []
     dist = []
     log_probs = []
-    epsilon = 1e-6
+    epsilon = 1e-4
 
     for i in range(len(mu)):
         temp = all_fea - mu[i]
@@ -22,7 +22,7 @@ def gmm(all_fea, pi, mu, all_output):
         except RuntimeError:
             Covi += epsilon * torch.eye(temp.shape[1]).cuda() * 100
             chol = torch.linalg.cholesky(Covi)
-        chol_inv = torch.inverse(chol)
+        chol_inv = torch.linalg.pinv(chol)
         Covi_inv = torch.matmul(chol_inv.t(), chol_inv)
         logdet = torch.logdet(Covi)
         mah_dist = (torch.matmul(temp, Covi_inv) * temp).sum(dim=1)
@@ -47,7 +47,7 @@ def KLLoss(input_, target_, coeff):
     return kl_loss.mean(dim=0)
 
 
-def mix_up(_x, c_batch, t_batch, model, class_num=10, alpha=1.0):
+def mix_up(_x, c_batch, t_batch, model, class_num=10, alpha=0.0):
     # weight mix-up
     if alpha == 0:
         outputs = model(_x)
@@ -112,7 +112,6 @@ if __name__ == '__main__':
         if torch.cuda.is_available():
             x, y = x.cuda(), y.cuda()
         pred = pretrained_model(x)
-        w = joint_model_data_score(x, pretrained_model, 'avg_pool', 10)
-        loss = mix_up(x, w, pred, pretrained_model)
-        print(w, w.sum(), loss, sep='\n')
+        w, gt = joint_model_data_score(x, pretrained_model, 'avg_pool', 10)
+        print(gt)
         break

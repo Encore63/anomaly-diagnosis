@@ -57,6 +57,9 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
     src_path = pathlib.Path(src_path).joinpath('mode{}_new'.format(mode))
     normal_data = pd.read_csv(src_path.joinpath('mode{}_d00.csv'.format(mode)))
     normal_data = normal_data.to_numpy()
+    _cali_norm = np.concatenate((normal_data[0:num_data, :45],
+                                 normal_data[0:num_data, 46:49],
+                                 normal_data[0:num_data, 50:52]), axis=1)
     scaler.fit(normal_data[1:num_data, :])
     dataset = np.zeros((1, time_win, 51)) if overlap else np.zeros((1, 51))
     count, idx_class = 0, 0
@@ -75,6 +78,9 @@ def data_concat(src_path: str, mode: int, num_data=600, time_win=10,
             fault_data = np.concatenate((fault_data[0:num_data, :45],
                                          fault_data[0:num_data, 46:49],
                                          fault_data[0:num_data, 50:52]), axis=1)
+            if weight_var:
+                weights = _get_var_weights(_cali_norm, fault_data)
+                fault_data = fault_data * weights
             label = np.array([[idx_class]] * len(fault_data))
             fault_data = np.concatenate((fault_data, label), axis=1)
             if overlap:
@@ -261,7 +267,7 @@ def _hotelling_t_square(input_0, input_1, neg_var=None):
     return t_square
 
 
-def variable_weighting(input_0, input_1, neg_var=None):
+def _variable_weighting(input_0, input_1, neg_var=None):
     n_0, n_1 = input_0.shape[0], input_1.shape[0]
     a = n_0 + n_1 - 2
     m = input_0.shape[-1]
@@ -271,12 +277,21 @@ def variable_weighting(input_0, input_1, neg_var=None):
     return var_w
 
 
+def _get_var_weights(input_0, input_1):
+    num_var = input_0.shape[-1]
+    var_w = []
+    for var_idx in range(num_var):
+        var_w.append(_variable_weighting(input_0, input_1, var_idx))
+    return np.array(var_w)
+
+
 if __name__ == '__main__':
     import time
+    import torch
 
     data = data_concat(r'../data/TEP', mode=1)
     normal = pd.read_csv(pathlib.Path(r'../data/TEP/mode1_new').joinpath('mode1_d00.csv'))
-    fault = pd.read_csv(pathlib.Path(r'../data/TEP/mode1_new').joinpath('mode1_d01.csv'))
+    fault = pd.read_csv(pathlib.Path(r'../data/TEP/mode1_new').joinpath('mode1_d02.csv'))
     normal, fault = np.array(normal)[1:600, :], np.array(fault)[1:600, :]
     normal = np.concatenate((normal[0:600, :45],
                              normal[0:600, 46:49],
@@ -285,11 +300,6 @@ if __name__ == '__main__':
                             fault[0:600, 46:49],
                             fault[0:600, 50:52]), axis=1)
     start = time.time()
-    weights = []
-    for i in range(normal.shape[-1]):
-        w = variable_weighting(normal, fault, i)
-        weights.append(w)
-        print("sensor {}: {}".format(i + 1, w))
+    _get_var_weights(normal, fault)
     end = time.time()
     print("time consumption: {}".format(end - start))
-    print("weights mean: {}".format(sum(weights) / len(weights)))
