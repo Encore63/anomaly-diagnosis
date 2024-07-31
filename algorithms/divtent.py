@@ -7,7 +7,7 @@ from copy import deepcopy
 from algorithms.comp import cafa
 from algorithms.comp import jmds
 from algorithms.comp.sam import SAM
-from algorithms.comp import trans_norm
+from algorithms.comp import trans_norm, weight_norm
 from utils.data_utils import domain_merge, domain_division
 
 
@@ -206,6 +206,18 @@ def replace_tn_layer(model, domain_idx):
             module.domain_idx = domain_idx
         else:
             replace_tn_layer(module, domain_idx)  # 递归替换子模块
+
+
+def replace_wn_layer(model, use_weight=True, residual=False):
+    for name, module in model.named_children():
+        if isinstance(module, nn.BatchNorm2d):
+            wn = weight_norm.WeightNorm(module.num_features,
+                                        module.eps, module.momentum,
+                                        module.affine, module.track_running_stats,
+                                        use_weight, residual).cuda()
+            setattr(model, name, wn)
+        else:
+            replace_wn_layer(module, use_weight, residual)  # 递归替换子模块
 
 
 def configure_model(model):
