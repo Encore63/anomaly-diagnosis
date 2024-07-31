@@ -1,6 +1,6 @@
 import torch
 import logging
-import itertools
+import learn2learn as l2l
 
 from tqdm import tqdm
 from torch.optim import Adam
@@ -88,6 +88,10 @@ def train_default(train_iter, eval_iter, model, criterion, args):
 
     if args.write_flag:
         writer.close()
+
+
+def meta_train(domains, model, criterion, args):
+    ...
 
 
 def train_with_arm(domains, model, criterion, args):
